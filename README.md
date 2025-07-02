@@ -40,19 +40,6 @@ Minecraftサーバー用のクエスト管理プラグインです。
 ---
 
 ## クエスト設定項目
-# sample
-`quests:
-  collect_diamond:
-    name: ダイヤモンド収集
-    type: COLLECT
-    target: DIAMOND
-    amount: 10
-    timeLimit: 300
-    cooldown: 600         # クールダウン（秒）※任意
-    maxAttempts: 3        # 最大挑戦回数 ※任意（0または指定なしで無制限）
-    rewards:
-      - give %player% diamond 5
-      - say %player% がクエストをクリアしました！`
 
 | key          | 説明                        | 例                       |
 |--------------|-----------------------------|--------------------------|
@@ -61,6 +48,8 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `target`     | 対象のMob名・アイテム名など | `ZOMBIE`、`DIAMOND`       |
 | `amount`     | 必要な数                   | `10`                     |
 | `timelimit`  | 制限時間（秒、0で無制限）    | `300`（5分）              |
+| `cooldown`   | クールダウン    | `600`（10分）              |
+| `cooldown`   | 最大挑戦回数 0または指定なしで無制限）   | `1`（1回）              |
 | `rewards`    | クリア時に実行するコマンド   | `give %player% diamond 5` |
 
 ---
