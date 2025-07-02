@@ -30,7 +30,7 @@ Minecraftサーバー用のクエスト管理プラグインです。
 |--------------------------------------|-----------------|-------------------|
 | `/quest config create <ID>`          | 新しいクエストを作成する    | `quest.create`    |
 | `/quest config set <ID> <key> <value>` | クエストの設定項目を変更する  | `quest.set`       |
-| `/quest config addreward <ID> <コマンド>` | クエスト報酬コマンドを追加   | `quest.addreward` |
+| `/quest config addreward <ID> <コマンド>` | クエスト報酬コマンドを追加(コマンド使用不可)   | `quest.addreward` |
 | `/quest config save`                 | すべてのクエスト設定を保存する | `quest.save`      |
 | `/quest leave`                       | クエストから離脱する      | `quest.leave`     |
 | `/quest start <ID>`                  | クエストを開始する       | `quest.start`     |
@@ -48,6 +48,8 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `target`     | 対象のMob名・アイテム名など | `ZOMBIE`、`DIAMOND`       |
 | `amount`     | 必要な数                   | `10`                     |
 | `timelimit`  | 制限時間（秒、0で無制限）    | `300`（5分）              |
+| `cooldown`   | クールダウン    | `600`（10分）              |
+| `maxAttempts`   | 最大挑戦回数 0または指定なしで無制限）   | `1`（1回）              |
 | `rewards`    | クリア時に実行するコマンド   | `give %player% diamond 5` |
 
 ---
@@ -96,6 +98,6 @@ MIT License
 ### 補足
 
 - `%player%`は報酬コマンド内でプレイヤー名に置き換わります
-- `quests.yml`は手動で編集も可能ですが、基本はコマンドから操作してください
+- `quests.yml`は手動で編集も可能です
 
 ---
