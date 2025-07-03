@@ -9,7 +9,11 @@ data class QuestData(
     var timeLimitSeconds: Long? = null,
     var rewards: MutableList<String> = mutableListOf(),
 
-    // 追加項目
-    var cooldownSeconds: Long? = null,   // クールダウン時間(秒)、nullなら無し
-    var maxUseCount: Int? = null          // 1プレイヤーあたりの最大利用回数、nullなら無制限
+    var cooldownSeconds: Long? = null,
+    var maxUseCount: Int? = null,
+
+    // パーティークエスト対応
+    var partyEnabled: Boolean = false,
+    var shareProgress: Boolean = false,
+    var shareCompletion: Boolean = false
 )

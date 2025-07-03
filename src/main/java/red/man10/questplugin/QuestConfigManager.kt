@@ -31,6 +31,14 @@ object QuestConfigManager {
             val timeLimit = q.getLong("timeLimit", -1)
             val rewards = q.getStringList("rewards").toMutableList()
 
+            val cooldown = q.getLong("cooldownSeconds", -1)
+            val maxUse = q.getInt("maxUseCount", -1)
+
+            // パーティー関連設定を追加して読み込み
+            val partyEnabled = q.getBoolean("partyEnabled", false)
+            val shareProgress = q.getBoolean("shareProgress", false)
+            val shareCompletion = q.getBoolean("shareCompletion", false)
+
             quests[id] = QuestData(
                 id = id,
                 name = name,
@@ -38,10 +46,16 @@ object QuestConfigManager {
                 target = target,
                 amount = amount,
                 timeLimitSeconds = if (timeLimit >= 0) timeLimit else null,
-                rewards = rewards
+                rewards = rewards,
+                cooldownSeconds = if (cooldown >= 0) cooldown else null,
+                maxUseCount = if (maxUse >= 0) maxUse else null,
+                partyEnabled = partyEnabled,
+                shareProgress = shareProgress,
+                shareCompletion = shareCompletion
             )
         }
     }
+
     fun reloadQuests() {
         loadAllQuests()
     }
@@ -57,6 +71,14 @@ object QuestConfigManager {
             root.set("$path.amount", data.amount)
             root.set("$path.timeLimit", data.timeLimitSeconds ?: -1)
             root.set("$path.rewards", data.rewards)
+
+            root.set("$path.cooldownSeconds", data.cooldownSeconds ?: -1)
+            root.set("$path.maxUseCount", data.maxUseCount ?: -1)
+
+            // パーティー関連設定の保存
+            root.set("$path.partyEnabled", data.partyEnabled)
+            root.set("$path.shareProgress", data.shareProgress)
+            root.set("$path.shareCompletion", data.shareCompletion)
         }
 
         root.save(questFile)
@@ -81,6 +103,6 @@ object QuestConfigManager {
     }
 
     fun getAllQuests(): Collection<QuestData> {
-        return QuestConfigManager.quests.values
+        return quests.values
     }
 }

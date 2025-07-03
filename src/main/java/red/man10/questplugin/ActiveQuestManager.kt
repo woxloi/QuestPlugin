@@ -21,7 +21,6 @@ object ActiveQuestManager {
         val timer: STimer
     )
 
-    // 追加：利用履歴管理
     object PlayerQuestUsageManager {
         private val usageMap = mutableMapOf<UUID, MutableMap<String, UsageData>>()
 
@@ -63,14 +62,13 @@ object ActiveQuestManager {
             data.timer.stop()
         }
         activeQuests.clear()
-        // 必要なら利用履歴の保存処理も追加
+        // 利用履歴の保存処理も追加可能
     }
 
     fun startQuest(player: Player, quest: QuestData): Boolean {
         val uuid = player.uniqueId
         if (activeQuests.containsKey(uuid)) return false // 既にクエスト中
 
-        // 追加: クールダウン・回数制限チェック
         if (!PlayerQuestUsageManager.canUseQuest(uuid, quest)) {
             player.sendMessage("§cこのクエストはまだ利用できません。クールダウン中か利用回数の上限に達しています。")
             return false
@@ -80,8 +78,8 @@ object ActiveQuestManager {
         bossBar.addPlayer(player)
 
         val timer = STimer()
-        if (quest.timeLimitSeconds != null) {
-            val seconds = quest.timeLimitSeconds!!.toInt()
+        quest.timeLimitSeconds?.let {
+            val seconds = it.toInt()
             timer.setRemainingTime(seconds)
             timer.linkBossBar(bossBar, true)
             timer.addOnEndEvent {
@@ -96,10 +94,18 @@ object ActiveQuestManager {
         val startTime = System.currentTimeMillis()
         activeQuests[uuid] = PlayerQuestData(quest, startTime, 0, bossBar, timer)
 
-        // 追加：利用記録を残す
         PlayerQuestUsageManager.recordQuestUse(uuid, quest)
 
         updateBossBar(player)
+
+        // パーティー対応ならメンバーにも開始
+        if (quest.partyEnabled) {
+            val members = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
+                .filter { it != player }
+            for (member in members) {
+                startQuest(member, quest)
+            }
+        }
 
         return true
     }
@@ -123,9 +129,32 @@ object ActiveQuestManager {
             val command = cmd.replace("%player%", player.name)
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
         }
+
+        // パーティー共有があればメンバー全員クリア
+        if (data.quest.partyEnabled && data.quest.shareCompletion) {
+            val members = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
+                .filter { it != player && activeQuests.containsKey(it.uniqueId) }
+            for (member in members) {
+                completeQuest(member)
+            }
+        }
     }
 
     fun addProgress(player: Player, amount: Int = 1) {
+        val uuid = player.uniqueId
+        val data = activeQuests[uuid] ?: return
+
+        if (data.quest.partyEnabled && data.quest.shareProgress) {
+            val members = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
+            for (member in members) {
+                addProgressIndividual(member, amount)
+            }
+        } else {
+            addProgressIndividual(player, amount)
+        }
+    }
+
+    private fun addProgressIndividual(player: Player, amount: Int) {
         val uuid = player.uniqueId
         val data = activeQuests[uuid] ?: return
         data.progress += amount
