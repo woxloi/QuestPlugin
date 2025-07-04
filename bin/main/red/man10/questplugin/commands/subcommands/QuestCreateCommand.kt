@@ -15,12 +15,12 @@ class QuestCreateCommand(private val plugin: JavaPlugin) : CommandExecutor {
         val id = args[2]
 
         if (QuestConfigManager.exists(id)) {
-            sender.sendMessage(Component.text("$prefix §cそのIDのクエストは既に存在します。"))
+            sender.sendMessage(Component.text("$prefix §c§lそのIDのクエストは既に存在します。"))
             return true
         }
 
         QuestConfigManager.createQuest(id)
-        sender.sendMessage(Component.text("$prefix クエスト[$id]を作成しました。"))
+        sender.sendMessage(Component.text("$prefix §a§lクエスト[$id]を作成しました。"))
         return true
     }
 }

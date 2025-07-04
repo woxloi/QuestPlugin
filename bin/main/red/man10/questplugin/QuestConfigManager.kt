@@ -31,6 +31,19 @@ object QuestConfigManager {
             val timeLimit = q.getLong("timeLimit", -1)
             val rewards = q.getStringList("rewards").toMutableList()
 
+            val cooldown = q.getLong("cooldownSeconds", -1)
+            val maxUse = q.getInt("maxUseCount", -1)
+
+            val partyEnabled = q.getBoolean("partyEnabled", false)
+            val shareProgress = q.getBoolean("shareProgress", false)
+            val shareCompletion = q.getBoolean("shareCompletion", false)
+
+            // 追加: テレポート先の読み込み（null許容）
+            val teleportWorld = q.getString("teleportWorld")
+            val teleportX = if (q.contains("teleportX")) q.getDouble("teleportX") else null
+            val teleportY = if (q.contains("teleportY")) q.getDouble("teleportY") else null
+            val teleportZ = if (q.contains("teleportZ")) q.getDouble("teleportZ") else null
+
             quests[id] = QuestData(
                 id = id,
                 name = name,
@@ -38,12 +51,19 @@ object QuestConfigManager {
                 target = target,
                 amount = amount,
                 timeLimitSeconds = if (timeLimit >= 0) timeLimit else null,
-                rewards = rewards
+                rewards = rewards,
+                cooldownSeconds = if (cooldown >= 0) cooldown else null,
+                maxUseCount = if (maxUse >= 0) maxUse else null,
+                partyEnabled = partyEnabled,
+                shareProgress = shareProgress,
+                shareCompletion = shareCompletion,
+
+                teleportWorld = teleportWorld,
+                teleportX = teleportX,
+                teleportY = teleportY,
+                teleportZ = teleportZ
             )
         }
-    }
-    fun reloadQuests() {
-        loadAllQuests()
     }
 
     fun saveAllQuests() {
@@ -57,10 +77,24 @@ object QuestConfigManager {
             root.set("$path.amount", data.amount)
             root.set("$path.timeLimit", data.timeLimitSeconds ?: -1)
             root.set("$path.rewards", data.rewards)
+
+            root.set("$path.cooldownSeconds", data.cooldownSeconds ?: -1)
+            root.set("$path.maxUseCount", data.maxUseCount ?: -1)
+
+            root.set("$path.partyEnabled", data.partyEnabled)
+            root.set("$path.shareProgress", data.shareProgress)
+            root.set("$path.shareCompletion", data.shareCompletion)
+
+            // 追加: テレポート先の保存
+            root.set("$path.teleportWorld", data.teleportWorld)
+            root.set("$path.teleportX", data.teleportX)
+            root.set("$path.teleportY", data.teleportY)
+            root.set("$path.teleportZ", data.teleportZ)
         }
 
         root.save(questFile)
     }
+
 
     fun getQuest(id: String): QuestData? {
         return quests[id]
@@ -81,6 +115,6 @@ object QuestConfigManager {
     }
 
     fun getAllQuests(): Collection<QuestData> {
-        return QuestConfigManager.quests.values
+        return quests.values
     }
 }

@@ -3,7 +3,9 @@ package red.man10.questplugin
 import org.bukkit.plugin.java.JavaPlugin
 import red.man10.questplugin.commands.QuestCommand
 import red.man10.questplugin.listeners.QuestProgressListener
-    val prefix = "§a[§6§lQuestPlugin§a]"
+import red.man10.questplugin.listeners.SmeltTracker
+
+val prefix = "§a[§6§lQuestPlugin§a]"
     val version = "2025/7/2"
 class QuestPlugin : JavaPlugin() {
 
@@ -23,6 +25,7 @@ class QuestPlugin : JavaPlugin() {
 
         // イベント登録
         server.pluginManager.registerEvents(QuestProgressListener(), this)
+        server.pluginManager.registerEvents(SmeltTracker, this)
 
         logger.info("QuestPlugin has been enabled.")
     }

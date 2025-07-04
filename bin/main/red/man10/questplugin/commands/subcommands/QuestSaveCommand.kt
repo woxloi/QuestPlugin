@@ -11,7 +11,7 @@ import red.man10.questplugin.prefix
 class QuestSaveConfigCommand(private val plugin: JavaPlugin) : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         QuestConfigManager.saveAllQuests()
-        sender.sendMessage(Component.text("$prefix §aクエスト設定を保存しました。"))
+        sender.sendMessage(Component.text("$prefix §a§lクエスト設定を保存しました。"))
         return true
     }
 }

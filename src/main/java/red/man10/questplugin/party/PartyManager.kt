@@ -1,88 +1,129 @@
 package red.man10.questplugin.party
 
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.bukkit.Bukkit
 import java.util.*
 
 object PartyManager {
 
-    private val partyLeaders = mutableMapOf<UUID, MutableSet<UUID>>() // Leader -> Members
-    val invited = mutableMapOf<UUID, UUID>() // Invited player -> Inviter
+    private val playerToPartyId = mutableMapOf<UUID, UUID>()
+    private val parties = mutableMapOf<UUID, Party>()
+    private val playerPartyMap = mutableMapOf<UUID, UUID>()
 
-    fun createParty(player: Player): Boolean {
-        if (isInParty(player)) return false
-        partyLeaders[player.uniqueId] = mutableSetOf(player.uniqueId)
+    data class Party(
+        val leader: UUID,
+        val members: MutableSet<UUID> = mutableSetOf()
+    )
+    enum class InviteResult {
+        SUCCESS,
+        NOT_IN_PARTY,
+        NOT_LEADER,
+        ALREADY_IN_PARTY,
+        FAILURE
+    }
+    enum class JoinResult {
+        SUCCESS,
+        NOT_INVITED,
+        ALREADY_IN_PARTY,
+        FAILURE
+    }
+
+    // 招待状：対象UUID -> 招待元リーダーUUIDセット
+    private val invitations = mutableMapOf<UUID, MutableSet<UUID>>()
+
+    fun createParty(leader: Player): Boolean {
+        if (isInParty(leader)) return false
+        val partyId = UUID.randomUUID()
+        val party = Party(leader.uniqueId, mutableSetOf(leader.uniqueId))
+        parties[partyId] = party
+        playerToPartyId[leader.uniqueId] = partyId
         return true
     }
 
-    fun invitePlayer(inviter: Player, target: Player): Boolean {
-        if (!isLeader(inviter)) return false
-        if (isInParty(target)) return false
-        invited[target.uniqueId] = inviter.uniqueId
+    fun disbandParty(leader: Player): Boolean {
+        val party = getParty(leader) ?: return false
+        if (party.leader != leader.uniqueId) return false
+
+        val partyId = playerToPartyId[leader.uniqueId] ?: return false
+        party.members.forEach { playerToPartyId.remove(it) }
+        parties.remove(partyId)
+        invitations.entries.removeIf { it.value.contains(leader.uniqueId) }
         return true
     }
 
-    fun joinParty(player: Player, leader: Player): Boolean {
-        val invitedBy = invited[player.uniqueId] ?: return false
-        if (invitedBy != leader.uniqueId) return false
-        val members = partyLeaders[leader.uniqueId] ?: return false
-        members.add(player.uniqueId)
-        invited.remove(player.uniqueId)
-        return true
+    fun getParty(player: Player): Party? {
+        val partyId = playerToPartyId[player.uniqueId] ?: return null
+        return parties[partyId]
     }
+
+    fun isInParty(player: Player): Boolean = playerToPartyId.containsKey(player.uniqueId)
+
+    fun isLeader(player: Player): Boolean {
+        val party = getParty(player) ?: return false
+        return party.leader == player.uniqueId
+    }
+
+    fun invitePlayer(leader: Player, target: Player): InviteResult {
+        val party = getParty(leader) ?: return InviteResult.NOT_IN_PARTY
+        if (party.leader != leader.uniqueId) return InviteResult.NOT_LEADER
+        if (isInParty(target)) return InviteResult.ALREADY_IN_PARTY
+
+        invitations.getOrPut(target.uniqueId) { mutableSetOf() }.add(leader.uniqueId)
+        return InviteResult.SUCCESS
+    }
+
+    fun joinParty(player: Player, leader: Player): JoinResult {
+        if (isInParty(player)) return JoinResult.ALREADY_IN_PARTY
+
+        val invitedLeaders = invitations[player.uniqueId] ?: emptySet()
+        if (!invitedLeaders.contains(leader.uniqueId)) return JoinResult.NOT_INVITED
+
+        // パーティーIDを取得
+        val partyId = playerToPartyId[leader.uniqueId] ?: return JoinResult.FAILURE
+
+        // パーティーデータを取得
+        val party = parties[partyId] ?: return JoinResult.FAILURE
+
+        // 実際に参加処理
+        party.members.add(player.uniqueId)
+        playerToPartyId[player.uniqueId] = partyId
+
+        // 招待解除
+        invitations[player.uniqueId]?.remove(leader.uniqueId)
+        if (invitations[player.uniqueId]?.isEmpty() == true) {
+            invitations.remove(player.uniqueId)
+        }
+
+        return JoinResult.SUCCESS
+    }
+
 
     fun leaveParty(player: Player): Boolean {
-        partyLeaders.forEach { (leader, members) ->
-            if (members.remove(player.uniqueId)) {
-                if (leader == player.uniqueId || members.isEmpty()) {
-                    disbandParty(leader)
-                }
-                return true
-            }
-        }
-        return false
-    }
+        val party = getParty(player) ?: return false
+        val partyId = playerToPartyId[player.uniqueId] ?: return false
 
-    fun disbandParty(leader: UUID): Boolean {
-        return partyLeaders.remove(leader) != null
+        if (party.leader == player.uniqueId) {
+            disbandParty(player)
+            return true
+        }
+
+        party.members.remove(player.uniqueId)
+        playerToPartyId.remove(player.uniqueId)
+        return true
     }
 
     fun kickMember(leader: Player, target: Player): Boolean {
-        if (!isLeader(leader)) return false
-        return partyLeaders[leader.uniqueId]?.remove(target.uniqueId) ?: false
-    }
+        val party = getParty(leader) ?: return false
+        if (party.leader != leader.uniqueId) return false
+        if (!party.members.contains(target.uniqueId)) return false
+        if (leader.uniqueId == target.uniqueId) return false
 
-    fun isInParty(player: Player): Boolean {
-        return partyLeaders.values.any { it.contains(player.uniqueId) }
-    }
-
-    fun isLeader(player: Player): Boolean {
-        return partyLeaders.containsKey(player.uniqueId)
-    }
-
-    fun getPartyMembers(player: Player): Set<Player> {
-        val entry = partyLeaders.entries.find { it.value.contains(player.uniqueId) } ?: return emptySet()
-        return entry.value.mapNotNull { Bukkit.getPlayer(it) }.toSet()
-    }
-
-    fun getLeader(player: Player): Player? {
-        val entry = partyLeaders.entries.find { it.value.contains(player.uniqueId) } ?: return null
-        return Bukkit.getPlayer(entry.key)
-    }
-    // プレイヤーの所属パーティー（メンバー一覧）を取得
-    fun getParty(player: Player): Set<Player>? {
-        return partyLeaders.entries.find { it.value.contains(player.uniqueId) }?.value
-            ?.mapNotNull { Bukkit.getPlayer(it) }
-            ?.toSet()
-    }
-
-    // 招待承諾処理（acceptInvite の代わり）
-    fun acceptInvite(player: Player): Boolean {
-        val leaderUUID = invited[player.uniqueId] ?: return false
-        val members = partyLeaders[leaderUUID] ?: return false
-        members.add(player.uniqueId)
-        invited.remove(player.uniqueId)
+        party.members.remove(target.uniqueId)
+        playerToPartyId.remove(target.uniqueId)
         return true
     }
 
+    fun getPartyMembers(player: Player): List<Player> {
+        return getParty(player)?.members?.mapNotNull { Bukkit.getPlayer(it) } ?: emptyList()
+    }
 }

@@ -42,10 +42,54 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .prefix("config")
                 .argument("set")
                 .argument("クエストID")
-                .argument("key", "name", "type", "target", "amount", "timelimit") // key の補完はここだけ
+                .argument("name")
                 .argument("value")
                 .permission("quest.set")
-                .explanation("クエストの設定を変更する")
+                .explanation("クエストの名前を設定する")
+                .executor(QuestSetCommand(plugin))
+        )
+        addCommand(
+            SCommandObject()
+                .prefix("config")
+                .argument("set")
+                .argument("クエストID")
+                .argument("type")
+                .argument("value")
+                .permission("quest.set")
+                .explanation("クエストタイプを設定する")
+                .executor(QuestSetCommand(plugin))
+        )
+        addCommand(
+            SCommandObject()
+                .prefix("config")
+                .argument("set")
+                .argument("クエストID")
+                .argument("target")
+                .argument("value")
+                .permission("quest.set")
+                .explanation("クエストのターゲットを設定する")
+                .executor(QuestSetCommand(plugin))
+        )
+        addCommand(
+            SCommandObject()
+                .prefix("config")
+                .argument("set")
+                .argument("クエストID")
+                .argument("amount")
+                .argument("value")
+                .permission("quest.set")
+                .explanation("クエストの個数を設定する")
+                .executor(QuestSetCommand(plugin))
+        )
+        addCommand(
+            SCommandObject()
+                .prefix("config")
+                .argument("set")
+                .argument("クエストID")
+                .argument("timelimit")
+                .argument("value")
+                .permission("quest.set")
+                .explanation("クエストの制限時間を設定する")
                 .executor(QuestSetCommand(plugin))
         )
 
@@ -77,6 +121,78 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .explanation("クエストを中断する")
                 .executor(QuestLeaveCommand())
         )
+// party create
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .argument("create")
+                .permission("quest.party")
+                .explanation("パーティーを作成する")
+                .executor(QuestPartyCommand())
+        )
+
+// party invite <player>
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .argument("invite")
+                .argument("player", SCommandArgumentType.ONLINE_PLAYER)
+                .permission("quest.party")
+                .explanation("プレイヤーをパーティーに招待する")
+                .executor(QuestPartyCommand())
+        )
+
+// party join <player>
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .argument("join")
+                .argument("player", SCommandArgumentType.ONLINE_PLAYER)
+                .permission("quest.party")
+                .explanation("指定プレイヤーのパーティーに参加する")
+                .executor(QuestPartyCommand())
+        )
+
+// party leave
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .argument("leave")
+                .permission("quest.party")
+                .explanation("パーティーを離脱する")
+                .executor(QuestPartyCommand())
+        )
+
+// party disband
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .argument("disband")
+                .permission("quest.party")
+                .explanation("パーティーを解散する（リーダーのみ）")
+                .executor(QuestPartyCommand())
+        )
+
+// party kick <player>
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .argument("kick")
+                .argument("player", SCommandArgumentType.ONLINE_PLAYER)
+                .permission("quest.party")
+                .explanation("パーティーからプレイヤーを追放する")
+                .executor(QuestPartyCommand())
+        )
+
+// ✅ 最後に base: /quest party（info表示）
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .permission("quest.party")
+                .explanation("パーティー情報を表示する")
+                .executor(QuestPartyCommand())
+        )
+
         addCommand(
             SCommandObject()
                 .prefix("reload")

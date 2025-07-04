@@ -48,20 +48,37 @@ Minecraftサーバー用のクエスト管理プラグインです。
 
 ## クエスト設定項目
 
-| key             | 説明                          | 例                           |
-|-----------------|-------------------------------|------------------------------|
-| `name`          | クエストの名前                 | `ドラゴン討伐`                 |
-| `type`          | クエストのタイプ               | `KILL`, `COLLECT` など（QuestType参照）|
-| `target`        | 対象のMob名・アイテム名など     | `ZOMBIE`、`DIAMOND`           |
-| `amount`        | 必要な数                     | `10`                         |
-| `timelimit`     | 制限時間（秒、0または未設定で無制限） | `300`（5分）                  |
-| `cooldownSeconds`      | クールダウン時間（秒）           | `600`（10分）                 |
-| `maxUseCount`   | 最大挑戦回数（0または未設定で無制限）| `1`（1回）                   |
-| `rewards`       | クリア時に実行するコマンド一覧    | `give %player% diamond 5`     |
-| `partyEnabled`  | パーティーでの共有有効化（true/false）| `true`                      |
-| `shareProgress` | パーティー内で進行状況を共有するか | `true`                      |
-| `shareCompletion`| パーティー内でクリア状態を共有するか| `true`                      |
+| key             | 説明                       | 例                                 |
+|-----------------|--------------------------|-----------------------------------|
+| `name`          | クエストの名前                  | `ドラゴン討伐`                          |
+| `type`          | クエストのタイプ                 | `KILL`, `COLLECT` など（QuestType参照） |
+| `target`        | 対象のMob名・アイテム名など          | `ZOMBIE`、`DIAMOND`                |
+| `amount`        | 必要な数                     | `10`                              |
+| `timelimit`     | 制限時間（秒、0または未設定で無制限）      | `300`（5分）                         |
+| `cooldownSeconds`      | クールダウン時間（秒）              | `600`（10分）                        |
+| `maxUseCount`   | 最大挑戦回数（0または未設定で無制限）      | `1`（1回）                           |
+| `rewards`       | クリア時に実行するコマンド一覧          | `give %player% diamond 5`         |
+| `partyEnabled`  | パーティーでの共有有効化（true/false） | `true`                            |
+| `shareProgress` | パーティー内で進行状況を共有するか        | `true`                            |
+| `shareCompletion`| パーティー内でクリア状態を共有するか       | `true`                            |
+| `teleportWorld`| プレイヤーを指定したワールドに飛ばす       | `world`                           |
+| `teleportX`| 指定したX座標に飛ばす              | `0`                               |
+| `teleportY`| 指定したY座標に飛ばす              | `64`                              |
+| `teleportZ`| 指定したZ座標に飛ばす              | `0`                               |
 
+```yaml
+quests:
+    name: "ドラゴン討伐"
+    type: "KILL"                  # クエストのタイプ
+    target: "ENDER_DRAGON"              # 対象のMob名やアイテム名
+    amount: 1                    # クエストをクリアするために必要な数
+    timelimit: 1800              # クエストの制限時間
+    cooldownSeconds: 3600        # 例3600秒経つごとに使えるようにする
+    rewards:                     # クリア時に実行するコマンド一覧
+      - "give %player% diamond 10" #プレイヤーにダイアモンドを10個渡す
+      - "say %player% がドラゴン討伐クエストをクリアしました！" #プレイヤー全員にクエストクリアを告知する
+      - "eco give %player% 1000" #プレイヤーにお金を1000円渡す
+```
 ---
 
 ## 対応クエストタイプ一覧
@@ -94,7 +111,7 @@ Minecraftサーバー用のクエスト管理プラグインです。
 
 ## 開発・拡張
 
-- 今後パーティー機能のさらなる拡充予定あり
+- 今後パーティー機能・クエストタイプ増加のさらなる拡充予定あり
 - 要望やバグ報告はIssueにてお知らせください
 
 ---

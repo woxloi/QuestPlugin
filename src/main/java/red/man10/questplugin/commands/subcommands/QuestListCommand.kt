@@ -12,12 +12,12 @@ class QuestListCommand(private val plugin: JavaPlugin) : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         val quests = QuestConfigManager.getAllQuests()
         if (quests.isEmpty()) {
-            sender.sendMessage(Component.text("$prefix §c登録されたクエストはありません。"))
+            sender.sendMessage(Component.text("$prefix §c§l登録されたクエストはありません。"))
             return true
         }
-        sender.sendMessage(Component.text("$prefix §a=== クエスト一覧 ==="))
+        sender.sendMessage(Component.text("$prefix §a§l=== クエスト一覧 ==="))
         for (quest in quests) {
-            sender.sendMessage(Component.text("$prefix §e${quest.id} : ${quest.name}"))
+            sender.sendMessage(Component.text("$prefix §e§l${quest.id} : ${quest.name}"))
         }
         return true
     }

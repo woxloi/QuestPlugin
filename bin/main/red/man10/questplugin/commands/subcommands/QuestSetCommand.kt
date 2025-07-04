@@ -17,7 +17,7 @@ class QuestSetCommand(private val plugin: JavaPlugin) : CommandExecutor {
 
         val quest = QuestConfigManager.getQuest(id)
         if (quest == null) {
-            sender.sendMessage(Component.text("$prefix §cクエスト[$id]は存在しません。"))
+            sender.sendMessage(Component.text("$prefix §c§lクエスト[$id]は存在しません。"))
             return true
         }
 
@@ -26,7 +26,7 @@ class QuestSetCommand(private val plugin: JavaPlugin) : CommandExecutor {
             "type" -> {
                 val type = red.man10.questplugin.QuestType.fromString(value)
                 if (type == null) {
-                    sender.sendMessage(Component.text("$prefix §c不正なタイプです。"))
+                    sender.sendMessage(Component.text("$prefix §c§l不正なタイプです。"))
                     return true
                 }
                 quest.type = type
@@ -35,7 +35,7 @@ class QuestSetCommand(private val plugin: JavaPlugin) : CommandExecutor {
             "amount" -> {
                 val num = value.toIntOrNull()
                 if (num == null || num <= 0) {
-                    sender.sendMessage(Component.text("$prefix §camountは正の整数でなければなりません。"))
+                    sender.sendMessage(Component.text("$prefix §c§lamountは正の整数でなければなりません。"))
                     return true
                 }
                 quest.amount = num
@@ -43,18 +43,18 @@ class QuestSetCommand(private val plugin: JavaPlugin) : CommandExecutor {
             "timelimit" -> {
                 val num = value.toLongOrNull()
                 if (num == null || num < 0) {
-                    sender.sendMessage(Component.text("$prefix §ctimelimitは0以上の数字でなければなりません。"))
+                    sender.sendMessage(Component.text("$prefix §c§ltimelimitは0以上の数字でなければなりません。"))
                     return true
                 }
                 quest.timeLimitSeconds = if (num == 0L) null else num
             }
             else -> {
-                sender.sendMessage(Component.text("$prefix §c設定できないキーです。"))
+                sender.sendMessage(Component.text("$prefix §c§l設定できないキーです。"))
                 return true
             }
         }
 
-        sender.sendMessage(Component.text("$prefix §aクエスト[$id]の$key を $value に設定しました。"))
+        sender.sendMessage(Component.text("$prefix §a§lクエスト[$id]の$key を $value に設定しました。"))
         return true
     }
 }

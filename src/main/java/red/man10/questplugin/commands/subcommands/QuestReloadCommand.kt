@@ -11,9 +11,8 @@ import red.man10.questplugin.prefix
 class QuestReloadCommand(private val plugin: JavaPlugin) : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         QuestConfigManager.loadAllQuests()
-        QuestConfigManager.reloadQuests()
         plugin.reloadConfig()
-        sender.sendMessage(Component.text("$prefix §aクエスト設定を再読み込みしました。"))
+        sender.sendMessage(Component.text("$prefix §a§lクエスト設定を再読み込みしました。"))
         return true
     }
 }

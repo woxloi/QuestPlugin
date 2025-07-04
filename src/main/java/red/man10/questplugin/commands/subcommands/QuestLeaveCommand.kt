@@ -11,18 +11,18 @@ import red.man10.questplugin.prefix
 class QuestLeaveCommand : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage(Component.text("$prefix §cこのコマンドはプレイヤーのみ実行可能です。"))
+            sender.sendMessage(Component.text("$prefix §c§lこのコマンドはプレイヤーのみ実行可能です。"))
             return true
         }
         val player = sender
 
         if (!ActiveQuestManager.isQuesting(player)) {
-            player.sendMessage(Component.text("$prefix §c現在進行中のクエストはありません。"))
+            player.sendMessage(Component.text("$prefix §c§l現在進行中のクエストはありません。"))
             return true
         }
 
         ActiveQuestManager.cancelQuest(player)
-        player.sendMessage(Component.text("$prefix §aクエストを中断しました。"))
+        player.sendMessage(Component.text("$prefix §a§lクエストを中断しました。"))
 
         return true
     }

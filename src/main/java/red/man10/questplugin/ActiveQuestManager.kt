@@ -2,6 +2,7 @@ package red.man10.questplugin
 
 import red.man10.questplugin.utils.STimer
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.boss.BossBar
@@ -30,9 +31,9 @@ object ActiveQuestManager {
         )
 
         fun canUseQuest(playerUUID: UUID, quest: QuestData): Boolean {
-            val usage = usageMap[playerUUID]?.get(quest.id) ?: return true
-
             val now = System.currentTimeMillis()
+            val playerUsage = usageMap.getOrPut(playerUUID) { mutableMapOf() }
+            val usage = playerUsage.getOrPut(quest.id) { UsageData() }
 
             quest.cooldownSeconds?.let {
                 val diff = (now - usage.lastUsedTime) / 1000
@@ -51,26 +52,41 @@ object ActiveQuestManager {
             usage.lastUsedTime = System.currentTimeMillis()
             usage.usedCount++
         }
+
+        fun getUsage(playerUUID: UUID, quest: QuestData): UsageData {
+            val playerUsage = usageMap.getOrPut(playerUUID) { mutableMapOf() }
+            return playerUsage.getOrPut(quest.id) { UsageData() }
+        }
     }
 
     fun init() {
-        // 必要なら起動時の初期化処理をここに（例：ファイルから利用履歴をロード）
+        // 必要なら起動時の初期化処理をここに
     }
 
     fun shutdown() {
-        activeQuests.values.forEach { data ->
-            data.timer.stop()
-        }
+        activeQuests.values.forEach { data -> data.timer.stop() }
         activeQuests.clear()
-        // 利用履歴の保存処理も追加可能
     }
 
     fun startQuest(player: Player, quest: QuestData): Boolean {
         val uuid = player.uniqueId
-        if (activeQuests.containsKey(uuid)) return false // 既にクエスト中
+        if (activeQuests.containsKey(uuid)) return false
 
         if (!PlayerQuestUsageManager.canUseQuest(uuid, quest)) {
-            player.sendMessage("§cこのクエストはまだ利用できません。クールダウン中か利用回数の上限に達しています。")
+            val usage = PlayerQuestUsageManager.getUsage(uuid, quest)
+            val cooldownRemaining = quest.cooldownSeconds?.let {
+                val elapsed = (System.currentTimeMillis() - usage.lastUsedTime) / 1000
+                (it - elapsed).coerceAtLeast(0)
+            } ?: 0
+
+            val maxUse = quest.maxUseCount
+            if (maxUse != null && usage.usedCount >= maxUse) {
+                player.sendMessage("$prefix §c§lこのクエストはもう挑戦できません。利用回数の上限（${maxUse}回）に達しています。")
+            } else if (quest.cooldownSeconds != null && cooldownRemaining > 0) {
+                player.sendMessage("$prefix §c§lこのクエストは現在クールダウン中です。あと ${cooldownRemaining} 秒待ってください。")
+            } else {
+                player.sendMessage("$prefix §c§lこのクエストは現在利用できません。")
+            }
             return false
         }
 
@@ -85,7 +101,7 @@ object ActiveQuestManager {
             timer.addOnEndEvent {
                 Bukkit.getScheduler().runTask(QuestPlugin.plugin as Plugin, Runnable {
                     cancelQuest(player)
-                    player.sendMessage("$prefix §c制限時間内にクエストをクリアすることができませんでした")
+                    player.sendMessage("$prefix §c§l制限時間内にクエストをクリアすることができませんでした")
                 })
             }
             timer.start()
@@ -95,10 +111,21 @@ object ActiveQuestManager {
         activeQuests[uuid] = PlayerQuestData(quest, startTime, 0, bossBar, timer)
 
         PlayerQuestUsageManager.recordQuestUse(uuid, quest)
-
         updateBossBar(player)
 
-        // パーティー対応ならメンバーにも開始
+        // テレポート
+        if (quest.teleportWorld != null && quest.teleportX != null && quest.teleportY != null && quest.teleportZ != null) {
+            val world = Bukkit.getWorld(quest.teleportWorld!!)
+            if (world != null) {
+                val location = Location(world, quest.teleportX!!, quest.teleportY!!, quest.teleportZ!!)
+                player.teleport(location)
+                player.sendMessage("$prefix §a§lクエスト開始に伴い、指定された場所にテレポートしました！")
+            } else {
+                player.sendMessage("$prefix §c§lテレポート先のワールドが存在しません。")
+            }
+        }
+
+        // パーティー共有
         if (quest.partyEnabled) {
             val members = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
                 .filter { it != player }
@@ -115,7 +142,6 @@ object ActiveQuestManager {
         val data = activeQuests.remove(uuid) ?: return
         data.bossBar.removePlayer(player)
         data.timer.stop()
-        player.sendMessage("$prefix §cクエスト[${data.quest.name}]をキャンセルしました。")
     }
 
     fun completeQuest(player: Player) {
@@ -123,14 +149,13 @@ object ActiveQuestManager {
         val data = activeQuests.remove(uuid) ?: return
         data.bossBar.removePlayer(player)
         data.timer.stop()
-        player.sendMessage("$prefix §aクエスト[${data.quest.name}]をクリアしました！")
+        player.sendMessage("$prefix §a§lクエスト[${data.quest.name}]をクリアしました！")
 
         for (cmd in data.quest.rewards) {
             val command = cmd.replace("%player%", player.name)
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
         }
 
-        // パーティー共有があればメンバー全員クリア
         if (data.quest.partyEnabled && data.quest.shareCompletion) {
             val members = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
                 .filter { it != player && activeQuests.containsKey(it.uniqueId) }
@@ -166,7 +191,7 @@ object ActiveQuestManager {
     }
 
     private fun getActionVerb(type: QuestType): String {
-        return when(type) {
+        return when (type) {
             QuestType.KILL -> "倒す"
             QuestType.COLLECT -> "集める"
             QuestType.TRAVEL -> "訪れる"
@@ -201,6 +226,7 @@ object ActiveQuestManager {
     fun isQuesting(player: Player): Boolean {
         return activeQuests.containsKey(player.uniqueId)
     }
+
     fun getQuest(player: Player): QuestData? {
         return activeQuests[player.uniqueId]?.quest
     }

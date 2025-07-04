@@ -6,7 +6,6 @@ import com.shojabon.scommandrouter.SCommandRouter.SCommandRouter
 import net.kyori.adventure.text.Component
 import red.man10.questplugin.QuestPlugin
 import red.man10.questplugin.commands.subcommands.*
-import red.man10.questplugin.commands.subcommands.party.*
 
 class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
 
@@ -122,15 +121,6 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .explanation("クエストを中断する")
                 .executor(QuestLeaveCommand())
         )
-// party base
-        addCommand(
-            SCommandObject()
-                .prefix("party")
-                .permission("quest.party")
-                .explanation("パーティー情報を表示する")
-                .executor(QuestPartyInfoCommand())
-        )
-
 // party create
         addCommand(
             SCommandObject()
@@ -138,7 +128,7 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .argument("create")
                 .permission("quest.party")
                 .explanation("パーティーを作成する")
-                .executor(QuestPartyCreateCommand())
+                .executor(QuestPartyCommand())
         )
 
 // party invite <player>
@@ -149,7 +139,7 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .argument("player", SCommandArgumentType.ONLINE_PLAYER)
                 .permission("quest.party")
                 .explanation("プレイヤーをパーティーに招待する")
-                .executor(QuestPartyInviteCommand())
+                .executor(QuestPartyCommand())
         )
 
 // party join <player>
@@ -160,7 +150,7 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .argument("player", SCommandArgumentType.ONLINE_PLAYER)
                 .permission("quest.party")
                 .explanation("指定プレイヤーのパーティーに参加する")
-                .executor(QuestPartyJoinCommand())
+                .executor(QuestPartyCommand())
         )
 
 // party leave
@@ -170,7 +160,7 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .argument("leave")
                 .permission("quest.party")
                 .explanation("パーティーを離脱する")
-                .executor(QuestPartyLeaveCommand())
+                .executor(QuestPartyCommand())
         )
 
 // party disband
@@ -180,7 +170,7 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .argument("disband")
                 .permission("quest.party")
                 .explanation("パーティーを解散する（リーダーのみ）")
-                .executor(QuestPartyDisbandCommand())
+                .executor(QuestPartyCommand())
         )
 
 // party kick <player>
@@ -191,8 +181,18 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .argument("player", SCommandArgumentType.ONLINE_PLAYER)
                 .permission("quest.party")
                 .explanation("パーティーからプレイヤーを追放する")
-                .executor(QuestPartyKickCommand())
+                .executor(QuestPartyCommand())
         )
+
+// ✅ 最後に base: /quest party（info表示）
+        addCommand(
+            SCommandObject()
+                .prefix("party")
+                .permission("quest.party")
+                .explanation("パーティー情報を表示する")
+                .executor(QuestPartyCommand())
+        )
+
         addCommand(
             SCommandObject()
                 .prefix("reload")
