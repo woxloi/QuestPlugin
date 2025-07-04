@@ -55,7 +55,7 @@ class QuestPartyCommand : CommandExecutor {
         }
         val leaderName = Bukkit.getPlayer(party.leader)?.name ?: "不明"
         player.sendMessage("§7§l==== あなたのパーティー情報 ====")
-        player.sendMessage("§c§lリーダー: §b$leaderName")
+        player.sendMessage("§c§lリーダー: §b§l$leaderName")
         player.sendMessage("§c§lメンバー:")
         party.members.forEach { memberUUID ->
             val memberName = Bukkit.getPlayer(memberUUID)?.name ?: "不明"

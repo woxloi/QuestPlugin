@@ -1,5 +1,7 @@
 package red.man10.questplugin.commands.subcommands
 
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.event.ClickEvent.suggestCommand
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
@@ -42,19 +44,25 @@ class QuestInfoCommand(private val plugin: JavaPlugin) : CommandExecutor {
         quest.maxUseCount?.let {
             sender.sendMessage("§e§l最大回数: §f§l${it}回")
         }
+        sender.sendMessage(text("§c§l[ここをクリックでクエスト開始コマンドを自動入力する]").clickEvent(suggestCommand("/quest start $questId")));
 
         if (quest.partyEnabled) {
-            sender.sendMessage("§e§lパーティー対応: §a有効")
+            sender.sendMessage("§e§lパーティー対応: §a§l有効")
             sender.sendMessage("  §7§l進捗共有: ${if (quest.shareProgress) "§a§lはい" else "§c§lいいえ"}")
             sender.sendMessage("  §7§l達成共有: ${if (quest.shareCompletion) "§a§lはい" else "§c§lいいえ"}")
-            sender.sendMessage("  §7§l人数上限: ${quest.partyMaxMembers ?: "制限なし"}")
+
+            val max = quest.partyMaxMembers
+            sender.sendMessage("  §7§l人数上限: ${if (max == null || max <= 0) "§7§l制限なし" else "§f§l${max}人"}")
+            sender.sendMessage(text("§c§l[ここをクリックでパーティーコマンドを自動入力する]").clickEvent(suggestCommand("/quest party create")));
         } else {
             sender.sendMessage("§e§lパーティー対応: §c§l無効")
         }
 
+
         if (quest.teleportWorld != null) {
             sender.sendMessage("§e§lテレポート先: §f§l${quest.teleportWorld} (${quest.teleportX}, ${quest.teleportY}, ${quest.teleportZ})")
         }
+
 
         sender.sendMessage("§7§l==============================")
         return true

@@ -37,6 +37,8 @@ object QuestConfigManager {
             val partyEnabled = q.getBoolean("partyEnabled", false)
             val shareProgress = q.getBoolean("shareProgress", false)
             val shareCompletion = q.getBoolean("shareCompletion", false)
+            val partyMaxMembers = q.getInt("partyMaxMembers", -1)
+
 
             // 追加: テレポート先の読み込み（null許容）
             val teleportWorld = q.getString("teleportWorld")
@@ -57,6 +59,7 @@ object QuestConfigManager {
                 partyEnabled = partyEnabled,
                 shareProgress = shareProgress,
                 shareCompletion = shareCompletion,
+                partyMaxMembers = if (partyMaxMembers >= 0) partyMaxMembers else null,
 
                 teleportWorld = teleportWorld,
                 teleportX = teleportX,

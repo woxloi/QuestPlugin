@@ -26,24 +26,28 @@ Minecraftサーバー用のクエスト管理プラグインです。
 
 ## コマンド一覧
 
-| コマンド                                 | 説明                          | 権限                |
-|--------------------------------------|-----------------------------|-------------------|
-| `/quest config create <ID>`          | 新しいクエストを作成する          | `quest.create`    |
-| `/quest config set <ID> <key> <value>` | クエストの設定項目を変更する        | `quest.set`       |
-| `/quest config addreward <ID> <コマンド>` | クエスト報酬コマンドを追加(コマンド内置換 `%player%`) | `quest.addreward` |
-| `/quest config save`                 | すべてのクエスト設定を保存する       | `quest.save`      |
-| `/quest leave`                       | クエストから離脱する                | `quest.leave`     |
-| `/quest info クエスト名`              | クエストの詳細を見る                | `quest.info`     |
-| `/quest start <ID>`                  | クエストを開始する                 | `quest.start`     |
-| `/quest list`                        | 利用可能なクエストの一覧を表示        | `quest.use`       |
-| `/quest reload`                      | プラグイン設定をリロード            | `quest.reload`    |
-| `/quest party`                      | 自分のパーティー情報を表示            | `quest.party`     |
-| `/quest party create`               | パーティーを作成する                | `quest.party`     |
-| `/quest party invite <player>`      | プレイヤーをパーティーに招待          | `quest.party`     |
-| `/quest party join <player>`        | 指定プレイヤーのパーティーに参加       | `quest.party`     |
-| `/quest party leave`                | パーティーを離脱する                | `quest.party`     |
-| `/quest party disband`              | パーティーを解散する（リーダーのみ）     | `quest.party`     |
-| `/quest party kick <player>`         | パーティーからプレイヤーを追放         | `quest.party`     |
+| コマンド                                       | 説明                                | 権限                       |
+|--------------------------------------------|-----------------------------------|--------------------------|
+| `/quest config create <ID>`                | 新しいクエストを作成する                      | `quest.config.create`    |
+| `/quest config set <ID> type <value>`      | クエストのタイプを設定する                     | `quest.config.set`       |
+| `/quest config set <ID> name <value>`      | クエストの名前を変更する                      | `quest.config.name`      |
+| `/quest config set <ID> target <value>`    | クエストのターゲットを変更する                   | `quest.config.target`    |
+| `/quest config set <ID> amount <value>`    | クエストの個数を変更する                      | `quest.config.amount`    |
+| `/quest config set <ID> timelimit <value>` | クエストの制限時間を変更する                    | `quest.config.timelimit` |
+| `/quest config addreward <ID> <コマンド>`      | クエスト報酬コマンドを追加(コマンド内置換 `%player%`) | `quest.config.addreward` |
+| `/quest config save`                       | すべてのクエスト設定を保存する                   | `quest.config.save`      |
+| `/quest leave`                             | クエストから離脱する                        | `quest.leave`            |
+| `/quest info クエスト名`                        | クエストの詳細を見る                        | `quest.info`             |
+| `/quest start <ID>`                        | クエストを開始する                         | `quest.start`            |
+| `/quest list`                              | 利用可能なクエストの一覧を表示                   | `quest.use`              |
+| `/quest reload`                            | プラグイン設定をリロード                      | `quest.reload`           |
+| `/quest party`                             | 自分のパーティー情報を表示                     | `quest.party`            |
+| `/quest party create`                      | パーティーを作成する                        | `quest.party`            |
+| `/quest party invite <player>`             | プレイヤーをパーティーに招待                    | `quest.party`            |
+| `/quest party join <player>`               | 指定プレイヤーのパーティーに参加                  | `quest.party`            |
+| `/quest party leave`                       | パーティーを離脱する                        | `quest.party`            |
+| `/quest party disband`                     | パーティーを解散する（リーダーのみ）                | `quest.party`            |
+| `/quest party kick <player>`               | パーティーからプレイヤーを追放                   | `quest.party`            |
 
 ---
 
