@@ -82,6 +82,7 @@ object QuestConfigManager {
             root.set("$path.maxUseCount", data.maxUseCount ?: -1)
 
             root.set("$path.partyEnabled", data.partyEnabled)
+            root.set("$path.partyMaxMembers", data.partyMaxMembers ?: -1)
             root.set("$path.shareProgress", data.shareProgress)
             root.set("$path.shareCompletion", data.shareCompletion)
 

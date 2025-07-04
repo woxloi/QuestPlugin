@@ -71,7 +71,14 @@ object ActiveQuestManager {
     fun startQuest(player: Player, quest: QuestData): Boolean {
         val uuid = player.uniqueId
         if (activeQuests.containsKey(uuid)) return false
-
+        if (quest.partyEnabled) {
+            val partyMembers = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
+            val maxMembers = quest.partyMaxMembers
+            if (maxMembers != null && partyMembers.size > maxMembers) {
+                player.sendMessage("$prefix §c§lこのクエストのパーティーメンバー上限は $maxMembers 人です。現在の人数は ${partyMembers.size} 人です。")
+                return false
+            }
+        }
         if (!PlayerQuestUsageManager.canUseQuest(uuid, quest)) {
             val usage = PlayerQuestUsageManager.getUsage(uuid, quest)
             val cooldownRemaining = quest.cooldownSeconds?.let {

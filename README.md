@@ -33,6 +33,7 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `/quest config addreward <ID> <コマンド>` | クエスト報酬コマンドを追加(コマンド内置換 `%player%`) | `quest.addreward` |
 | `/quest config save`                 | すべてのクエスト設定を保存する       | `quest.save`      |
 | `/quest leave`                       | クエストから離脱する                | `quest.leave`     |
+| `/quest info クエスト名`              | クエストの詳細を見る                | `quest.info`     |
 | `/quest start <ID>`                  | クエストを開始する                 | `quest.start`     |
 | `/quest list`                        | 利用可能なクエストの一覧を表示        | `quest.use`       |
 | `/quest reload`                      | プラグイン設定をリロード            | `quest.reload`    |
@@ -55,24 +56,24 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `target`        | 対象のMob名・アイテム名など          | `ZOMBIE`、`DIAMOND`                |
 | `amount`        | 必要な数                     | `10`                              |
 | `timelimit`     | 制限時間（秒、0または未設定で無制限）      | `300`（5分）                         |
-| `cooldownSeconds`      | クールダウン時間（秒）              | `600`（10分）                        |
+| `cooldownSeconds`     | クールダウン時間（秒）              | `600`（10分）                        |
 | `maxUseCount`   | 最大挑戦回数（0または未設定で無制限）      | `1`（1回）                           |
 | `rewards`       | クリア時に実行するコマンド一覧          | `give %player% diamond 5`         |
 | `partyEnabled`  | パーティーでの共有有効化（true/false） | `true`                            |
+| `partyMaxMembers`  | クエストに挑める最大パーティー人数        | `3`                               |
 | `shareProgress` | パーティー内で進行状況を共有するか        | `true`                            |
 | `shareCompletion`| パーティー内でクリア状態を共有するか       | `true`                            |
 | `teleportWorld`| プレイヤーを指定したワールドに飛ばす       | `world`                           |
 | `teleportX`| 指定したX座標に飛ばす              | `0`                               |
 | `teleportY`| 指定したY座標に飛ばす              | `64`                              |
 | `teleportZ`| 指定したZ座標に飛ばす              | `0`                               |
-
 ```yaml
 quests:
     name: "ドラゴン討伐"
-    type: "KILL"                  # クエストのタイプ
-    target: "ENDER_DRAGON"              # 対象のMob名やアイテム名
+    type: "KILL"                 # クエストのタイプ
+    target: "ENDER_DRAGON"       # 対象のMob名やアイテム名
     amount: 1                    # クエストをクリアするために必要な数
-    timelimit: 1800              # クエストの制限時間
+    timelimit: 1800              # クエストの制限時間(1800秒)
     cooldownSeconds: 3600        # 例3600秒経つごとに使えるようにする
     rewards:                     # クリア時に実行するコマンド一覧
       - "give %player% diamond 10" #プレイヤーにダイアモンドを10個渡す

@@ -124,6 +124,7 @@ object PartyManager {
     }
 
     fun getPartyMembers(player: Player): List<Player> {
-        return getParty(player)?.members?.mapNotNull { Bukkit.getPlayer(it) } ?: emptyList()
+        val party = getParty(player) ?: return emptyList()
+        return party.members.mapNotNull { Bukkit.getPlayer(it) }
     }
 }

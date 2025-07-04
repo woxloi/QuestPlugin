@@ -35,7 +35,6 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .explanation("クエストを作成する")
                 .executor(QuestCreateCommand(plugin))
         )
-
 // set コマンド
         addCommand(
             SCommandObject()
@@ -113,6 +112,14 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
                 .permission("quest.save")
                 .explanation("クエスト設定を保存する")
                 .executor(QuestSaveConfigCommand(plugin))
+        )
+        addCommand(
+            SCommandObject()
+                .prefix("info")
+                .argument("クエスト名") // ここだけ補完は普通の文字列でOK
+                .permission("quest.info")
+                .explanation("クエストの詳細を見ます")
+                .executor(QuestInfoCommand(plugin))
         )
         addCommand(
             SCommandObject()

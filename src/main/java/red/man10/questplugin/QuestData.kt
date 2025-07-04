@@ -11,6 +11,7 @@ data class QuestData(
 
     var cooldownSeconds: Long? = null,
     var maxUseCount: Int? = null,
+    var partyMaxMembers: Int? = null,
 
     // パーティークエスト対応
     var partyEnabled: Boolean = false,
