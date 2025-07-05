@@ -1,5 +1,7 @@
 package red.man10.questplugin
 
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.event.ClickEvent.suggestCommand
 import red.man10.questplugin.utils.STimer
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -71,14 +73,37 @@ object ActiveQuestManager {
     fun startQuest(player: Player, quest: QuestData): Boolean {
         val uuid = player.uniqueId
         if (activeQuests.containsKey(uuid)) return false
+
+        // パーティー機能が有効な場合
         if (quest.partyEnabled) {
             val partyMembers = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
+
+            // ここを追加：パーティーに入っていない場合は拒否
+            if (partyMembers.isEmpty()) {
+                player.sendMessage("$prefix §c§lこのクエストはパーティー専用です。パーティーを作成してから再度お試しください。")
+                player.sendMessage(text("§c§l[ここをクリックでパーティーコマンドを自動入力する]").clickEvent(suggestCommand("/quest party create")));
+                return false
+            }
+
             val maxMembers = quest.partyMaxMembers
             if (maxMembers != null && partyMembers.size > maxMembers) {
                 player.sendMessage("$prefix §c§lこのクエストのパーティーメンバー上限は $maxMembers 人です。現在の人数は ${partyMembers.size} 人です。")
                 return false
             }
+
+            val nonEmpty = partyMembers.filter { member ->
+                member.inventory.contents.any { it != null }
+            }
+
+            if (nonEmpty.isNotEmpty()) {
+                player.sendMessage("$prefix §c§l以下のプレイヤーのインベントリが空ではありません。クエストを開始できません。")
+                nonEmpty.forEach { member ->
+                    player.sendMessage("§7 - §c${member.name}")
+                }
+                return false
+            }
         }
+
         if (!PlayerQuestUsageManager.canUseQuest(uuid, quest)) {
             val usage = PlayerQuestUsageManager.getUsage(uuid, quest)
             val cooldownRemaining = quest.cooldownSeconds?.let {
@@ -118,7 +143,14 @@ object ActiveQuestManager {
         activeQuests[uuid] = PlayerQuestData(quest, startTime, 0, bossBar, timer)
 
         PlayerQuestUsageManager.recordQuestUse(uuid, quest)
+
+        for (cmd in quest.startCommands) {
+            val command = cmd.replace("%player%", player.name)
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
+        }
+
         updateBossBar(player)
+
 
         // テレポート
         if (quest.teleportWorld != null && quest.teleportX != null && quest.teleportY != null && quest.teleportZ != null) {

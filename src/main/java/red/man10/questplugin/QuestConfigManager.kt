@@ -30,6 +30,7 @@ object QuestConfigManager {
             val amount = q.getInt("amount")
             val timeLimit = q.getLong("timeLimit", -1)
             val rewards = q.getStringList("rewards").toMutableList()
+            val startCommands = q.getStringList("startCommands").toMutableList()
 
             val cooldown = q.getLong("cooldownSeconds", -1)
             val maxUse = q.getInt("maxUseCount", -1)
@@ -54,6 +55,7 @@ object QuestConfigManager {
                 amount = amount,
                 timeLimitSeconds = if (timeLimit >= 0) timeLimit else null,
                 rewards = rewards,
+                startCommands = startCommands,
                 cooldownSeconds = if (cooldown >= 0) cooldown else null,
                 maxUseCount = if (maxUse >= 0) maxUse else null,
                 partyEnabled = partyEnabled,
@@ -80,6 +82,8 @@ object QuestConfigManager {
             root.set("$path.amount", data.amount)
             root.set("$path.timeLimit", data.timeLimitSeconds ?: -1)
             root.set("$path.rewards", data.rewards)
+            root.set("$path.startCommands", data.startCommands)
+
 
             root.set("$path.cooldownSeconds", data.cooldownSeconds ?: -1)
             root.set("$path.maxUseCount", data.maxUseCount ?: -1)

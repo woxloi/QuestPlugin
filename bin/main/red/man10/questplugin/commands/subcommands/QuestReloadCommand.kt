@@ -15,7 +15,6 @@ class QuestReloadCommand(private val plugin: JavaPlugin) : CommandExecutor {
         QuestConfigManager.loadAllQuests()
         for (player in Bukkit.getOnlinePlayers()) {
             ActiveQuestManager.cancelQuest(player)
-            player.sendMessage("§c§lリロードによってクエストがキャンセルされました")
         }
         plugin.reloadConfig()
         sender.sendMessage("$prefix §a§lクエスト設定を再読み込みしました")

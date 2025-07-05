@@ -1,9 +1,9 @@
 package red.man10.questplugin.commands
 
 import com.shojabon.scommandrouter.SCommandRouter.SCommandArgumentType
+import com.shojabon.scommandrouter.SCommandRouter.SCommandData
 import com.shojabon.scommandrouter.SCommandRouter.SCommandObject
 import com.shojabon.scommandrouter.SCommandRouter.SCommandRouter
-import net.kyori.adventure.text.Component
 import red.man10.questplugin.QuestPlugin
 import red.man10.questplugin.commands.subcommands.*
 
@@ -15,13 +15,9 @@ class QuestCommand(val plugin: QuestPlugin) : SCommandRouter(plugin, "quest") {
         pluginPrefix = "§a[§6§lQuestPlugin§a]"
     }
 
-    private fun registerEvents() {
-        setNoPermissionEvent { e ->
-            e.sender.sendMessage("$pluginPrefix§c§lあなたは権限がありません")
-        }
-        setOnNoCommandFoundEvent { e ->
-            e.sender.sendMessage("$pluginPrefix§c§lコマンドが存在しません")
-        }
+    fun registerEvents() {
+        setNoPermissionEvent { e: SCommandData -> e.sender.sendMessage("${pluginPrefix}§c§lあなたは権限がありません") }
+        setOnNoCommandFoundEvent { e: SCommandData -> e.sender.sendMessage("${pluginPrefix}§c§lコマンドが存在しません") }
     }
 
     private fun registerCommands() {

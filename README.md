@@ -62,7 +62,8 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `timelimit`     | 制限時間（秒、0または未設定で無制限）      | `300`（5分）                         |
 | `cooldownSeconds`     | クールダウン時間（秒）              | `600`（10分）                        |
 | `maxUseCount`   | 最大挑戦回数（0または未設定で無制限）      | `1`（1回）                           |
-| `rewards`       | クリア時に実行するコマンド一覧          | `give %player% diamond 5`         |
+| `rewards`       | クリア時に実行するコマンド          | `give %player% diamond 5`         |
+| `startCommands`       | スタート時に実行するコマンド          | `give %player% stone_sword`         |
 | `partyEnabled`  | パーティーでの共有有効化（true/false） | `true`                            |
 | `partyMaxMembers`  | クエストに挑める最大パーティー人数        | `3`                               |
 | `shareProgress` | パーティー内で進行状況を共有するか        | `true`                            |
