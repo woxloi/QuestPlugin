@@ -22,6 +22,7 @@ data class QuestData(
     var teleportY: Double? = null,
     var teleportZ: Double? = null,
 
-    // ⬇️ 追加部分
-    var startCommands: MutableList<String> = mutableListOf()
+    var startCommands: MutableList<String> = mutableListOf(),
+    var maxLives: Int? = null
+
 )

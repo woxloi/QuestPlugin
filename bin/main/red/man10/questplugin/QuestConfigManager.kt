@@ -31,6 +31,7 @@ object QuestConfigManager {
             val timeLimit = q.getLong("timeLimit", -1)
             val rewards = q.getStringList("rewards").toMutableList()
             val startCommands = q.getStringList("startCommands").toMutableList()
+            val maxLives = q.getInt("maxLives", -1)
 
             val cooldown = q.getLong("cooldownSeconds", -1)
             val maxUse = q.getInt("maxUseCount", -1)
@@ -66,7 +67,8 @@ object QuestConfigManager {
                 teleportWorld = teleportWorld,
                 teleportX = teleportX,
                 teleportY = teleportY,
-                teleportZ = teleportZ
+                teleportZ = teleportZ,
+                maxLives = if (maxLives >= 0) maxLives else null
             )
         }
     }
@@ -83,6 +85,7 @@ object QuestConfigManager {
             root.set("$path.timeLimit", data.timeLimitSeconds ?: -1)
             root.set("$path.rewards", data.rewards)
             root.set("$path.startCommands", data.startCommands)
+            root.set("$path.maxLives", data.maxLives ?: -1) // 👈 追加
 
 
             root.set("$path.cooldownSeconds", data.cooldownSeconds ?: -1)

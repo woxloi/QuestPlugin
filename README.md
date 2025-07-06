@@ -62,6 +62,7 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `timelimit`     | 制限時間（秒、0または未設定で無制限）      | `300`（5分）                         |
 | `cooldownSeconds`     | クールダウン時間（秒）              | `600`（10分）                        |
 | `maxUseCount`   | 最大挑戦回数（0または未設定で無制限）      | `1`（1回）                           |
+| `maxLives`   | クエスト中に最大まで死ねる回数          | `1`（1回）                           |
 | `rewards`       | クリア時に実行するコマンド(手動で追加推奨)   | `give %player% diamond 5`         |
 | `startCommands`       | スタート時に実行するコマンド           | `give %player% stone_sword`         |
 | `partyEnabled`  | パーティーでの共有有効化（true/false） | `true`                            |
@@ -74,6 +75,7 @@ Minecraftサーバー用のクエスト管理プラグインです。
 | `teleportZ`| 指定したZ座標に飛ばす              | `0`                               |
 ```yaml
 quests:
+  test:
     name: "ドラゴン討伐"
     type: "KILL"                 # クエストのタイプ
     target: "ENDER_DRAGON"       # 対象のMob名やアイテム名

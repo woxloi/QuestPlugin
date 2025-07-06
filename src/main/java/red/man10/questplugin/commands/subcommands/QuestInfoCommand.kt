@@ -6,7 +6,9 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.plugin.java.JavaPlugin
+import red.man10.questplugin.ActiveQuestManager
 import red.man10.questplugin.QuestConfigManager
+import red.man10.questplugin.party.PartyManager
 
 class QuestInfoCommand(private val plugin: JavaPlugin) : CommandExecutor {
 
@@ -26,12 +28,39 @@ class QuestInfoCommand(private val plugin: JavaPlugin) : CommandExecutor {
         sender.sendMessage("§e§l名前: §f§l${quest.name}")
         sender.sendMessage("§e§lタイプ: §f§l${quest.type}")
         sender.sendMessage("§e§l目標: §f§l${quest.target} x${quest.amount}")
+        // ライフ数表示追加（パーティーメンバー全員分）
+        if (quest.maxLives != null) {
+            // パーティーが有効ならメンバーを取得、そうでなければ自身のみ
+            val partyMembers = if (quest.partyEnabled && sender is org.bukkit.entity.Player) {
+                PartyManager.getPartyMembers(sender).toMutableList().also {
+                    if (!it.contains(sender)) it.add(sender)
+                }
+            } else {
+                if (sender is org.bukkit.entity.Player) listOf(sender) else emptyList()
+            }
+
+            val uniqueMembers = partyMembers.distinctBy { it.uniqueId }
+            val totalMaxLives = quest.maxLives!! * uniqueMembers.size
+            val totalDeaths = uniqueMembers.sumOf { member ->
+                ActiveQuestManager.getPlayerData(member.uniqueId)?.deathCount ?: 0
+            }
+            val remainingLives = (totalMaxLives - totalDeaths).coerceAtLeast(0)
+
+            sender.sendMessage("§d§lライフ数: §f$remainingLives")
+        }
         sender.sendMessage("§e§l報酬:")
+
         if (quest.rewards.isEmpty()) {
             sender.sendMessage("  §7§l(報酬なし)")
         } else {
             quest.rewards.forEach { reward ->
                 sender.sendMessage("  §f§l- $reward")
+            }
+        }
+        if (quest.startCommands.isNotEmpty()) {
+            sender.sendMessage("§e§l開始時コマンド:")
+            quest.startCommands.forEach { cmd ->
+                sender.sendMessage("  §f§l- $cmd")
             }
         }
 

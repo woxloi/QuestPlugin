@@ -1,18 +1,24 @@
 package red.man10.questplugin
 
+import com.shojabon.mcutils.Utils.SScoreboard
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.ClickEvent.suggestCommand
 import red.man10.questplugin.utils.STimer
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.boss.BossBar
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
+import red.man10.questplugin.QuestPlugin.Companion.plugin
+import red.man10.questplugin.party.PartyManager
 import java.util.*
 
 object ActiveQuestManager {
+    private val scoreboard = SScoreboard("TEST")
+    private const val prefix = "§a[§6§lQuestPlugin§a]"
 
     private val activeQuests = mutableMapOf<UUID, PlayerQuestData>()
 
@@ -21,7 +27,9 @@ object ActiveQuestManager {
         val startTime: Long,
         var progress: Int = 0,
         val bossBar: BossBar,
-        val timer: STimer
+        val timer: STimer,
+        val questScoreboard: QuestScoreboard,
+        var deathCount: Int = 0  // ← 追加
     )
 
     object PlayerQuestUsageManager {
@@ -31,7 +39,62 @@ object ActiveQuestManager {
             var lastUsedTime: Long = 0,
             var usedCount: Int = 0
         )
+        // 死亡を1回カウント（ライフ減少）
+        fun addDeath(player: Player) {
+            val data = activeQuests[player.uniqueId] ?: return
+            data.deathCount++
+            val quest = data.quest
 
+            // 最大ライフを取得（設定されていなければ無制限扱い）
+            val maxLives = quest.maxLives ?: return
+
+            val partyMembers = if (quest.partyEnabled) {
+                PartyManager.getPartyMembers(player).distinctBy { it.uniqueId }
+            } else {
+                listOf(player)
+            }
+
+            // 全員の最大ライフ合計
+            val totalMaxLives = maxLives * partyMembers.size
+
+            // 全員の合計死亡数
+            val totalDeaths = partyMembers.sumOf { member ->
+                activeQuests[member.uniqueId]?.deathCount ?: 0
+            }
+
+            val remainingLives = (totalMaxLives - totalDeaths).coerceAtLeast(0)
+
+            // ライフ0でクエスト失敗扱いにするならここでキャンセル
+            if (remainingLives <= 0) {
+                partyMembers.forEach {
+                    cancelQuest(it)
+                    it.sendMessage("$prefix §c§lライフが尽きたためクエスト失敗です。")
+                }
+            } else {
+                // ライフ減少の通知など必要ならここに
+            }
+        }
+
+        // ライフ残りを取得（合計）
+        fun getRemainingLives(player: Player): Int {
+            val data = activeQuests[player.uniqueId] ?: return 0
+            val quest = data.quest
+            val maxLives = quest.maxLives ?: return Int.MAX_VALUE
+
+            val partyMembers = if (quest.partyEnabled) {
+                PartyManager.getPartyMembers(player).distinctBy { it.uniqueId }
+            } else {
+                listOf(player)
+            }
+
+            val totalMaxLives = maxLives * partyMembers.size
+
+            val totalDeaths = partyMembers.sumOf { member ->
+                activeQuests[member.uniqueId]?.deathCount ?: 0
+            }
+
+            return (totalMaxLives - totalDeaths).coerceAtLeast(0)
+        }
         fun canUseQuest(playerUUID: UUID, quest: QuestData): Boolean {
             val now = System.currentTimeMillis()
             val playerUsage = usageMap.getOrPut(playerUUID) { mutableMapOf() }
@@ -74,14 +137,11 @@ object ActiveQuestManager {
         val uuid = player.uniqueId
         if (activeQuests.containsKey(uuid)) return false
 
-        // パーティー機能が有効な場合
         if (quest.partyEnabled) {
-            val partyMembers = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
-
-            // ここを追加：パーティーに入っていない場合は拒否
+            val partyMembers = PartyManager.getPartyMembers(player)
             if (partyMembers.isEmpty()) {
                 player.sendMessage("$prefix §c§lこのクエストはパーティー専用です。パーティーを作成してから再度お試しください。")
-                player.sendMessage(text("§c§l[ここをクリックでパーティーコマンドを自動入力する]").clickEvent(suggestCommand("/quest party create")));
+                player.sendMessage(text("§c§l[ここをクリックでパーティーコマンドを自動入力する]").clickEvent(suggestCommand("/quest party create")))
                 return false
             }
 
@@ -91,15 +151,10 @@ object ActiveQuestManager {
                 return false
             }
 
-            val nonEmpty = partyMembers.filter { member ->
-                member.inventory.contents.any { it != null }
-            }
-
+            val nonEmpty = partyMembers.filter { it.inventory.contents.any { item -> item != null } }
             if (nonEmpty.isNotEmpty()) {
                 player.sendMessage("$prefix §c§l以下のプレイヤーのインベントリが空ではありません。クエストを開始できません。")
-                nonEmpty.forEach { member ->
-                    player.sendMessage("§7 - §c${member.name}")
-                }
+                nonEmpty.forEach { player.sendMessage("§7 - §c${it.name}") }
                 return false
             }
         }
@@ -136,23 +191,34 @@ object ActiveQuestManager {
                     player.sendMessage("$prefix §c§l制限時間内にクエストをクリアすることができませんでした")
                 })
             }
-            timer.start()
         }
 
-        val startTime = System.currentTimeMillis()
-        activeQuests[uuid] = PlayerQuestData(quest, startTime, 0, bossBar, timer)
+        val scoreboard = QuestScoreboard(player, quest)
+        scoreboard.show()
 
+        timer.addOnIntervalEvent { remainingSeconds ->
+            Bukkit.getScheduler().runTask(QuestPlugin.plugin, Runnable {
+                val data = activeQuests[uuid]
+                if (data != null) {
+                    data.questScoreboard.updateProgress(data.progress)
+                    data.questScoreboard.updateRemainingTime(remainingSeconds.toLong())
+                }
+            })
+        }
+
+        timer.start()
+
+        val startTime = System.currentTimeMillis()
+        activeQuests[uuid] = PlayerQuestData(quest, startTime, 0, bossBar, timer, scoreboard)
         PlayerQuestUsageManager.recordQuestUse(uuid, quest)
 
-        for (cmd in quest.startCommands) {
+        quest.startCommands.forEach { cmd ->
             val command = cmd.replace("%player%", player.name)
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
         }
 
         updateBossBar(player)
 
-
-        // テレポート
         if (quest.teleportWorld != null && quest.teleportX != null && quest.teleportY != null && quest.teleportZ != null) {
             val world = Bukkit.getWorld(quest.teleportWorld!!)
             if (world != null) {
@@ -164,12 +230,9 @@ object ActiveQuestManager {
             }
         }
 
-        // パーティー共有
         if (quest.partyEnabled) {
-            val members = red.man10.questplugin.party.PartyManager.getPartyMembers(player)
-                .filter { it != player }
-            for (member in members) {
-                startQuest(member, quest)
+            PartyManager.getPartyMembers(player).filter { it != player }.forEach {
+                startQuest(it, quest)
             }
         }
 
@@ -181,6 +244,15 @@ object ActiveQuestManager {
         val data = activeQuests.remove(uuid) ?: return
         data.bossBar.removePlayer(player)
         data.timer.stop()
+        data.questScoreboard.hide()
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            player.gameMode = GameMode.SURVIVAL
+        })
+        if (PartyManager.disbandParty(player)) {
+            player.sendMessage("$prefix §a§lクエストが終了とともにパーティーが解散されました")
+        } else {
+            player.sendMessage("$prefix §c§lパーティー解散に失敗しました。")
+        }
     }
 
     fun completeQuest(player: Player) {
@@ -188,7 +260,12 @@ object ActiveQuestManager {
         val data = activeQuests.remove(uuid) ?: return
         data.bossBar.removePlayer(player)
         data.timer.stop()
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            player.gameMode = GameMode.SURVIVAL
+        })
         player.sendMessage("$prefix §a§lクエスト[${data.quest.name}]をクリアしました！")
+        data.questScoreboard.hide()
+
 
         for (cmd in data.quest.rewards) {
             val command = cmd.replace("%player%", player.name)
@@ -201,6 +278,11 @@ object ActiveQuestManager {
             for (member in members) {
                 completeQuest(member)
             }
+        }
+        if (PartyManager.disbandParty(player)) {
+            player.sendMessage("$prefix §a§lクエストが終了とともにパーティーが解散されました")
+        } else {
+            player.sendMessage("$prefix §c§lパーティー解散に失敗しました。")
         }
     }
 
@@ -268,5 +350,8 @@ object ActiveQuestManager {
 
     fun getQuest(player: Player): QuestData? {
         return activeQuests[player.uniqueId]?.quest
+    }
+    fun getPlayerData(uuid: UUID): PlayerQuestData? {
+        return activeQuests[uuid]
     }
 }

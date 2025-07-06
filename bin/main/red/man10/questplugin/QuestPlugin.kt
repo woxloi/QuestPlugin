@@ -2,6 +2,7 @@ package red.man10.questplugin
 
 import org.bukkit.plugin.java.JavaPlugin
 import red.man10.questplugin.commands.QuestCommand
+import red.man10.questplugin.listeners.QuestDeathListener
 import red.man10.questplugin.listeners.QuestProgressListener
 import red.man10.questplugin.listeners.SmeltTracker
 
@@ -11,6 +12,7 @@ class QuestPlugin : JavaPlugin() {
 
     companion object {
         lateinit var plugin: QuestPlugin
+        lateinit var commandRouter: QuestCommand
     }
 
     override fun onEnable() {
@@ -19,13 +21,14 @@ class QuestPlugin : JavaPlugin() {
         saveDefaultConfig()
         QuestConfigManager.loadAllQuests()
         ActiveQuestManager.init()
-
-        // コマンド登録
-        QuestCommand(this)
+        commandRouter = QuestCommand(this)
 
         // イベント登録
         server.pluginManager.registerEvents(QuestProgressListener(), this)
         server.pluginManager.registerEvents(SmeltTracker, this)
+        server.pluginManager.registerEvents(QuestDeathListener(this), this)
+        getCommand("quest")!!.setExecutor(commandRouter)
+        getCommand("quest")!!.tabCompleter = commandRouter
 
         logger.info("QuestPlugin has been enabled.")
     }
