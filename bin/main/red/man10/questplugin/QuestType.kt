@@ -31,6 +31,7 @@ enum class QuestType(val displayName: String) {
     DAMAGE_TAKEN("ダメージを受ける"),
     DAMAGE_GIVEN("ダメージを与える"),
     SHOOT("弓などで攻撃"),
+    MYTHIC_KILL("MythicMob討伐"), // ← 追加！
 
     // 経験・成長
     LEVEL("レベル到達"),

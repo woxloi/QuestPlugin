@@ -107,6 +107,7 @@ quests:
 - DAMAGE_TAKEN (ダメージを受ける)
 - DAMAGE_GIVEN (ダメージを与える)
 - SHOOT (弓で攻撃)
+- MYTHIC_KILL (MythicMobsを討伐する)
 - LEVEL (レベル到達)
 - EXP_GAINED (経験値獲得)
 - TIME_PLAYED (プレイ時間)
@@ -134,5 +135,5 @@ MIT License
 
 - `%player%` は報酬コマンド内でプレイヤー名に置換されます
 - `quests.yml` は手動編集も可能です（フォーマットに注意してください）
-
+- '導入必須プラグインMythicMobs'
 ---

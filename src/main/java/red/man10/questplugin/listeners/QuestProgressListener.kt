@@ -21,10 +21,25 @@ import org.bukkit.plugin.Plugin
 import red.man10.questplugin.ActiveQuestManager
 import red.man10.questplugin.QuestType
 import red.man10.questplugin.listeners.SmeltTracker.getRecentSmelter
+import io.lumine.mythic.bukkit.events.MythicMobDeathEvent
 import java.util.*
 
 class QuestProgressListener : Listener {
+    // MythicMob討伐 (MYTHIC_KILL)
+    @EventHandler
+    fun onMythicMobKill(e: MythicMobDeathEvent) {
+        val killer = e.killer as? Player ?: return
+        if (!ActiveQuestManager.isQuesting(killer)) return
+        val quest = ActiveQuestManager.getQuest(killer) ?: return
+        if (quest.type != QuestType.MYTHIC_KILL) return
 
+        val targetMob = quest.target.lowercase()
+        val killedMob = e.mobType.internalName.lowercase()
+
+        if (targetMob != "any" && targetMob != killedMob) return
+
+        ActiveQuestManager.addProgress(killer, 1)
+    }
     // Mob討伐
     @EventHandler
     fun onEntityDeath(e: EntityDeathEvent) {

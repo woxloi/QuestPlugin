@@ -1,5 +1,7 @@
 package red.man10.questplugin.commands.subcommands
 
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.event.ClickEvent.suggestCommand
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -118,7 +120,9 @@ class QuestPartyCommand : CommandExecutor {
         val result = PartyManager.invitePlayer(player, target)
         if (result == PartyManager.InviteResult.SUCCESS) {
             player.sendMessage("$prefix §a§l${target.name} をパーティーに招待しました。")
-            target.sendMessage("$prefix §e§l${player.name} からパーティーに招待されました。 /quest party join ${player.name} で参加できます。")
+            target.sendMessage("$prefix §e§l${player.name} からパーティーに招待されました")
+            target.sendMessage(text("$prefix §e§l${player.name} からパーティーに招待されました").clickEvent(suggestCommand("/quest party join ${player.name}"))
+            )
         } else {
             player.sendMessage("$prefix §c§l招待に失敗しました。")
         }

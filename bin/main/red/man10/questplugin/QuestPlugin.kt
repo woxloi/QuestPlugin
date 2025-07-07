@@ -4,6 +4,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import red.man10.questplugin.commands.QuestCommand
 import red.man10.questplugin.listeners.QuestDeathListener
 import red.man10.questplugin.listeners.QuestProgressListener
+import red.man10.questplugin.listeners.QuestRespawnListener
 import red.man10.questplugin.listeners.SmeltTracker
 
 val prefix = "§a[§6§lQuestPlugin§a]"
@@ -21,9 +22,10 @@ class QuestPlugin : JavaPlugin() {
         saveDefaultConfig()
         QuestConfigManager.loadAllQuests()
         ActiveQuestManager.init()
-        commandRouter = QuestCommand(this)
+        commandRouter = QuestCommand()
 
         // イベント登録
+        server.pluginManager.registerEvents(QuestRespawnListener(), this)
         server.pluginManager.registerEvents(QuestProgressListener(), this)
         server.pluginManager.registerEvents(SmeltTracker, this)
         server.pluginManager.registerEvents(QuestDeathListener(this), this)

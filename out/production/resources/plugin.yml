@@ -2,9 +2,8 @@ name: QuestPlugin
 main: red.man10.questplugin.QuestPlugin
 version: 1.0
 api-version: 1.19
+depend: [MythicMobs]
 commands:
   quest:
     description: クエストシステム
     usage: /quest
-    permission: quest.use
-    permission-message: You do not have permission!

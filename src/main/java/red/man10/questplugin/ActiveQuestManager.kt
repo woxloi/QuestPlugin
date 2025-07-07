@@ -29,7 +29,8 @@ object ActiveQuestManager {
         val bossBar: BossBar,
         val timer: STimer,
         val questScoreboard: QuestScoreboard,
-        var deathCount: Int = 0  // ← 追加
+        var deathCount: Int = 0,
+        var originalLocation: Location
     )
 
     object PlayerQuestUsageManager {
@@ -125,8 +126,18 @@ object ActiveQuestManager {
     }
 
     fun init() {
-        // 必要なら起動時の初期化処理をここに
+        // スポーン位置の定期更新（10秒ごと）
+        Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+            for ((uuid, data) in activeQuests) {
+                val player = Bukkit.getPlayer(uuid) ?: continue
+                if (player.isOnline && !player.isDead) {
+                    // onGround 判定を入れたければ以下に条件追加
+                    data.originalLocation = player.location.clone()
+                }
+            }
+        }, 20L * 10, 20L * 10) // 最初の遅延: 10秒、間隔: 10秒
     }
+
 
     fun shutdown() {
         activeQuests.values.forEach { data -> data.timer.stop() }
@@ -137,69 +148,98 @@ object ActiveQuestManager {
         val uuid = player.uniqueId
         if (activeQuests.containsKey(uuid)) return false
 
-        if (quest.partyEnabled) {
-            val partyMembers = PartyManager.getPartyMembers(player)
-            if (partyMembers.isEmpty()) {
+        val partyMembers = if (quest.partyEnabled) {
+            val members = PartyManager.getPartyMembers(player)
+            if (members.isEmpty()) {
                 player.sendMessage("$prefix §c§lこのクエストはパーティー専用です。パーティーを作成してから再度お試しください。")
-                player.sendMessage(text("§c§l[ここをクリックでパーティーコマンドを自動入力する]").clickEvent(suggestCommand("/quest party create")))
+                player.sendMessage(
+                    text("§c§l[ここをクリックでパーティーコマンドを自動入力する]")
+                        .clickEvent(suggestCommand("/quest party create"))
+                )
                 return false
             }
 
             val maxMembers = quest.partyMaxMembers
-            if (maxMembers != null && partyMembers.size > maxMembers) {
-                player.sendMessage("$prefix §c§lこのクエストのパーティーメンバー上限は $maxMembers 人です。現在の人数は ${partyMembers.size} 人です。")
+            if (maxMembers != null && members.size > maxMembers) {
+                player.sendMessage("$prefix §c§lこのクエストのパーティーメンバー上限は $maxMembers 人です。現在の人数は ${members.size} 人です。")
                 return false
             }
 
-            val nonEmpty = partyMembers.filter { it.inventory.contents.any { item -> item != null } }
+            val nonEmpty = members.filter { it.inventory.contents.any { item -> item != null } }
             if (nonEmpty.isNotEmpty()) {
                 player.sendMessage("$prefix §c§l以下のプレイヤーのインベントリが空ではありません。クエストを開始できません。")
                 nonEmpty.forEach { player.sendMessage("§7 - §c${it.name}") }
                 return false
             }
-        }
 
-        if (!PlayerQuestUsageManager.canUseQuest(uuid, quest)) {
-            val usage = PlayerQuestUsageManager.getUsage(uuid, quest)
-            val cooldownRemaining = quest.cooldownSeconds?.let {
-                val elapsed = (System.currentTimeMillis() - usage.lastUsedTime) / 1000
-                (it - elapsed).coerceAtLeast(0)
-            } ?: 0
+            for (member in members) {
+                val memberUUID = member.uniqueId
+                val usage = PlayerQuestUsageManager.getUsage(memberUUID, quest)
 
-            val maxUse = quest.maxUseCount
-            if (maxUse != null && usage.usedCount >= maxUse) {
-                player.sendMessage("$prefix §c§lこのクエストはもう挑戦できません。利用回数の上限（${maxUse}回）に達しています。")
-            } else if (quest.cooldownSeconds != null && cooldownRemaining > 0) {
-                player.sendMessage("$prefix §c§lこのクエストは現在クールダウン中です。あと ${cooldownRemaining} 秒待ってください。")
-            } else {
-                player.sendMessage("$prefix §c§lこのクエストは現在利用できません。")
+                if (!PlayerQuestUsageManager.canUseQuest(memberUUID, quest)) {
+                    if (quest.cooldownSeconds != null) {
+                        val remaining = quest.cooldownSeconds!! - ((System.currentTimeMillis() - usage.lastUsedTime) / 1000)
+                        if (remaining > 0) {
+                            member.sendMessage("$prefix §cこのクエストは現在クールダウン中です。あと §e$remaining 秒§cお待ちください。")
+                            return false
+                        }
+                    }
+                    if (quest.maxUseCount != null && usage.usedCount >= quest.maxUseCount!!) {
+                        member.sendMessage("$prefix §cこのクエストは最大使用回数に達しています。")
+                        return false
+                    }
+                }
             }
-            return false
+
+            // OKな場合に全員分記録
+            members.forEach { PlayerQuestUsageManager.recordQuestUse(it.uniqueId, quest) }
+
+            members
+        } else {
+            val usage = PlayerQuestUsageManager.getUsage(uuid, quest)
+
+            if (!PlayerQuestUsageManager.canUseQuest(uuid, quest)) {
+                if (quest.cooldownSeconds != null) {
+                    val remaining = quest.cooldownSeconds!! - ((System.currentTimeMillis() - usage.lastUsedTime) / 1000)
+                    if (remaining > 0) {
+                        player.sendMessage("$prefix §cこのクエストは現在クールダウン中です。あと §e$remaining 秒§cお待ちください。")
+                        return false
+                    }
+                }
+                if (quest.maxUseCount != null && usage.usedCount >= quest.maxUseCount!!) {
+                    player.sendMessage("$prefix §cこのクエストは最大使用回数に達しています。")
+                    return false
+                }
+            }
+
+            PlayerQuestUsageManager.recordQuestUse(uuid, quest)
+
+            listOf(player)
         }
 
+        // タイマー、ボスバー共通作成（パーティーで共有）
         val bossBar = createBossBar(quest)
-        bossBar.addPlayer(player)
-
         val timer = STimer()
+        val startTime = System.currentTimeMillis()
+
         quest.timeLimitSeconds?.let {
             val seconds = it.toInt()
             timer.setRemainingTime(seconds)
             timer.linkBossBar(bossBar, true)
             timer.addOnEndEvent {
-                Bukkit.getScheduler().runTask(QuestPlugin.plugin as Plugin, Runnable {
-                    cancelQuest(player)
-                    player.sendMessage("$prefix §c§l制限時間内にクエストをクリアすることができませんでした")
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    partyMembers.forEach {
+                        cancelQuest(it)
+                        it.sendMessage("$prefix §c§l制限時間内にクエストをクリアすることができませんでした")
+                    }
                 })
             }
         }
 
-        val scoreboard = QuestScoreboard(player, quest)
-        scoreboard.show()
-
         timer.addOnIntervalEvent { remainingSeconds ->
-            Bukkit.getScheduler().runTask(QuestPlugin.plugin, Runnable {
-                val data = activeQuests[uuid]
-                if (data != null) {
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                partyMembers.forEach { member ->
+                    val data = activeQuests[member.uniqueId] ?: return@forEach
                     data.questScoreboard.updateProgress(data.progress)
                     data.questScoreboard.updateRemainingTime(remainingSeconds.toLong())
                 }
@@ -208,36 +248,49 @@ object ActiveQuestManager {
 
         timer.start()
 
-        val startTime = System.currentTimeMillis()
-        activeQuests[uuid] = PlayerQuestData(quest, startTime, 0, bossBar, timer, scoreboard)
-        PlayerQuestUsageManager.recordQuestUse(uuid, quest)
+        // 全員に bossbar、scoreboard、startCommand 実行、テレポート
+        for (member in partyMembers) {
+            val uuid = member.uniqueId
 
-        quest.startCommands.forEach { cmd ->
-            val command = cmd.replace("%player%", player.name)
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
-        }
+            val scoreboard = QuestScoreboard(member, quest)
+            scoreboard.show()
 
-        updateBossBar(player)
+            activeQuests[uuid] = PlayerQuestData(
+                quest,
+                startTime,
+                0,
+                bossBar,
+                timer,
+                scoreboard,
+                0,
+                member.location.clone()
+            )
 
-        if (quest.teleportWorld != null && quest.teleportX != null && quest.teleportY != null && quest.teleportZ != null) {
-            val world = Bukkit.getWorld(quest.teleportWorld!!)
-            if (world != null) {
-                val location = Location(world, quest.teleportX!!, quest.teleportY!!, quest.teleportZ!!)
-                player.teleport(location)
-                player.sendMessage("$prefix §a§lクエスト開始に伴い、指定された場所にテレポートしました！")
-            } else {
-                player.sendMessage("$prefix §c§lテレポート先のワールドが存在しません。")
+            bossBar.addPlayer(member)
+
+            quest.startCommands.forEach { cmd ->
+                val command = cmd.replace("%player%", member.name)
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
             }
-        }
 
-        if (quest.partyEnabled) {
-            PartyManager.getPartyMembers(player).filter { it != player }.forEach {
-                startQuest(it, quest)
+            if (quest.teleportWorld != null && quest.teleportX != null && quest.teleportY != null && quest.teleportZ != null) {
+                val world = Bukkit.getWorld(quest.teleportWorld!!)
+                if (world != null) {
+                    val location = Location(world, quest.teleportX!!, quest.teleportY!!, quest.teleportZ!!)
+                    member.teleport(location)
+                    member.sendMessage("$prefix §a§lクエスト開始に伴い、指定された場所にテレポートしました！")
+                } else {
+                    member.sendMessage("$prefix §c§lテレポート先のワールドが存在しません。")
+                }
             }
+
+            updateBossBar(member)
         }
 
         return true
     }
+
+
 
     fun cancelQuest(player: Player) {
         val uuid = player.uniqueId

@@ -4,12 +4,11 @@ import com.shojabon.mcutils.Utils.SCommandRouter.SCommandArgument
 import com.shojabon.mcutils.Utils.SCommandRouter.SCommandArgumentType
 import com.shojabon.mcutils.Utils.SCommandRouter.SCommandObject
 import com.shojabon.mcutils.Utils.SCommandRouter.SCommandRouter
-import red.man10.questplugin.QuestPlugin
 import red.man10.questplugin.QuestPlugin.Companion.plugin
 import red.man10.questplugin.commands.subcommands.*
 
-class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
-    // plugin変数の再定義を削除し、コンストラクタで受け取ったpluginをそのまま使用
+class QuestCommand : SCommandRouter() {
+
     init {
         registerCommands()
         registerEvents()
@@ -27,77 +26,80 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("create"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
                 .addRequiredPermission("quest.config.create")
                 .addExplanation("クエストを作成する")
                 .setExecutor(QuestCreateCommand(plugin))
         )
 
+        val setCommand = QuestSetCommand(plugin)
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("set"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
                 .addArgument(SCommandArgument().addAllowedString("name"))
-                .addArgument(SCommandArgument().addAllowedString("内部名"))
+                .addArgument(SCommandArgument().addAlias("内部名"))
                 .addRequiredPermission("quest.config.name")
                 .addExplanation("クエストの名前を設定する")
-                .setExecutor(QuestSetCommand(plugin))
+                .setExecutor(setCommand)
         )
 
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("set"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
                 .addArgument(SCommandArgument().addAllowedString("type"))
-                .addArgument(SCommandArgument().addAllowedString("タイプ名"))
+                .addArgument(SCommandArgument().addAlias("タイプ名"))
                 .addRequiredPermission("quest.config.set")
                 .addExplanation("クエストタイプを設定する")
-                .setExecutor(QuestSetCommand(plugin))
+                .setExecutor(setCommand)
         )
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("set"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
                 .addArgument(SCommandArgument().addAllowedString("target"))
-                .addArgument(SCommandArgument().addAllowedString("ターゲット名"))
+                .addArgument(SCommandArgument().addAlias("ターゲット名"))
                 .addRequiredPermission("quest.config.target")
                 .addExplanation("クエストのターゲットを設定する")
-                .setExecutor(QuestSetCommand(plugin))
+                .setExecutor(setCommand)
         )
 
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("set"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
                 .addArgument(SCommandArgument().addAllowedString("amount"))
-                .addArgument(SCommandArgument().addAllowedString("個数"))
+                .addArgument(SCommandArgument().addAlias("個数"))
                 .addRequiredPermission("quest.config.amount")
                 .addExplanation("クエストクリア時に必要な個数を設定する")
-                .setExecutor(QuestSetCommand(plugin))
+                .setExecutor(setCommand)
         )
 
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("set"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
                 .addArgument(SCommandArgument().addAllowedString("timelimit"))
-                .addArgument(SCommandArgument().addAllowedString("時間"))
+                .addArgument(SCommandArgument().addAlias("時間"))
                 .addRequiredPermission("quest.config.timelimit")
                 .addExplanation("クエストの制限時間を設定する")
-                .setExecutor(QuestSetCommand(plugin))
+                .setExecutor(setCommand)
         )
 
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("config"))
                 .addArgument(SCommandArgument().addAllowedString("addreward"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
-                .addArgument(SCommandArgument().addAllowedString("コマンド"))
+                .addArgument(SCommandArgument().addAlias("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("コマンド"))
                 .addRequiredPermission("quest.config.addreward")
                 .addExplanation("クエストに報酬コマンドを追加する")
                 .setExecutor(QuestAddRewardCommand(plugin))
@@ -111,14 +113,16 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
                 .addExplanation("クエスト設定を保存する")
                 .setExecutor(QuestSaveConfigCommand(plugin))
         )
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("info"))
-                .addArgument(SCommandArgument().addAllowedString("クエスト名"))
+                .addArgument(SCommandArgument().addAlias("クエストID"))
                 .addRequiredPermission("quest.info")
                 .addExplanation("クエストの詳細を見る")
                 .setExecutor(QuestInfoCommand(plugin))
         )
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("leave"))
@@ -126,31 +130,36 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
                 .addExplanation("クエストを中断する")
                 .setExecutor(QuestLeaveCommand(plugin))
         )
+
+        val partyCommand = QuestPartyCommand()
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("party"))
                 .addArgument(SCommandArgument().addAllowedString("create"))
                 .addRequiredPermission("quest.party")
                 .addExplanation("パーティーを作成する")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("party"))
                 .addArgument(SCommandArgument().addAllowedString("invite"))
-                .addArgument(SCommandArgument().addAllowedString("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
+                .addArgument(SCommandArgument().addAlias("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
                 .addRequiredPermission("quest.party")
                 .addExplanation("プレイヤーをパーティーに招待する")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
+
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("party"))
                 .addArgument(SCommandArgument().addAllowedString("join"))
-                .addArgument(SCommandArgument().addAllowedString("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
+                .addArgument(SCommandArgument().addAlias("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
                 .addRequiredPermission("quest.party")
                 .addExplanation("指定プレイヤーのパーティーに参加する")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
 
         addCommand(
@@ -159,7 +168,7 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
                 .addArgument(SCommandArgument().addAllowedString("leave"))
                 .addRequiredPermission("quest.party")
                 .addExplanation("パーティーを離脱する")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
 
         addCommand(
@@ -168,17 +177,17 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
                 .addArgument(SCommandArgument().addAllowedString("disband"))
                 .addRequiredPermission("quest.party")
                 .addExplanation("パーティーを解散する（リーダーのみ）")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
 
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("party"))
                 .addArgument(SCommandArgument().addAllowedString("kick"))
-                .addArgument(SCommandArgument().addAllowedString("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
+                .addArgument(SCommandArgument().addAlias("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
                 .addRequiredPermission("quest.party")
                 .addExplanation("パーティーからプレイヤーを追放する")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
 
         addCommand(
@@ -186,10 +195,9 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
                 .addArgument(SCommandArgument().addAllowedString("party"))
                 .addRequiredPermission("quest.party")
                 .addExplanation("パーティー情報を表示する")
-                .setExecutor(QuestPartyCommand())
+                .setExecutor(partyCommand)
         )
 
-        // その他
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("reload"))
@@ -201,7 +209,7 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
         addCommand(
             SCommandObject()
                 .addArgument(SCommandArgument().addAllowedString("start"))
-                .addArgument(SCommandArgument().addAllowedString("クエストID"))
+                .addArgument(SCommandArgument().addAlias("クエストID"))
                 .addRequiredPermission("quest.start")
                 .addExplanation("クエストを開始する")
                 .setExecutor(QuestStartCommand(plugin))
@@ -215,6 +223,4 @@ class QuestCommand(plugin: QuestPlugin) : SCommandRouter() {
                 .setExecutor(QuestListCommand(plugin))
         )
     }
-    }
-
-
+}
