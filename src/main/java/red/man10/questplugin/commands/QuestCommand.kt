@@ -222,5 +222,14 @@ class QuestCommand : SCommandRouter() {
                 .addExplanation("現在使用可能なクエストを見る")
                 .setExecutor(QuestListCommand(plugin))
         )
+        addCommand(
+            SCommandObject()
+                .addArgument(SCommandArgument().addAllowedString("logop"))
+                .addArgument(SCommandArgument().addAlias("プレイヤー名").addAllowedType(SCommandArgumentType.ONLINE_PLAYER))
+                .addArgument(SCommandArgument().addAlias("ページ数"))
+                .addRequiredPermission("quest.logop")
+                .addExplanation("指定したプレイヤーの履歴を見る")
+                .setExecutor(QuestLogOpCommand(plugin))
+        )
     }
 }

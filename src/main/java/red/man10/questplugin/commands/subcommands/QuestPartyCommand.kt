@@ -120,7 +120,6 @@ class QuestPartyCommand : CommandExecutor {
         val result = PartyManager.invitePlayer(player, target)
         if (result == PartyManager.InviteResult.SUCCESS) {
             player.sendMessage("$prefix §a§l${target.name} をパーティーに招待しました。")
-            target.sendMessage("$prefix §e§l${player.name} からパーティーに招待されました")
             target.sendMessage(text("$prefix §e§l${player.name} からパーティーに招待されました").clickEvent(suggestCommand("/quest party join ${player.name}"))
             )
         } else {

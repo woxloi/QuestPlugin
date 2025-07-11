@@ -10,10 +10,12 @@ import org.bukkit.Location
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.boss.BossBar
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import red.man10.questplugin.QuestPlugin.Companion.plugin
 import red.man10.questplugin.party.PartyManager
+import java.io.File
 import java.util.*
 
 object ActiveQuestManager {
@@ -32,13 +34,29 @@ object ActiveQuestManager {
         var deathCount: Int = 0,
         var originalLocation: Location
     )
+    data class QuestHistoryEntry(
+        val questId: String,
+        val questName: String,
+        val completedAt: Long,
+        val success: Boolean,
+        val progress: Int,
+        val deathCount: Int
+    )
+
+    // 追加: プレイヤーごとのクエスト履歴保持マップ
+    private val questHistories = mutableMapOf<UUID, MutableList<QuestHistoryEntry>>()
+
+    // 履歴保存用ファイル & YamlConfiguration
+    private val historyFile = File(plugin.dataFolder, "quest_histories.yml")
+    private val historyConfig = if (historyFile.exists()) YamlConfiguration.loadConfiguration(historyFile) else YamlConfiguration()
 
     object PlayerQuestUsageManager {
         private val usageMap = mutableMapOf<UUID, MutableMap<String, UsageData>>()
 
         data class UsageData(
             var lastUsedTime: Long = 0,
-            var usedCount: Int = 0
+            var usedCount: Int = 0,
+            var lastRecoveryTime: Long = System.currentTimeMillis()
         )
         // 死亡を1回カウント（ライフ減少）
         fun addDeath(player: Player) {
@@ -101,30 +119,94 @@ object ActiveQuestManager {
             val playerUsage = usageMap.getOrPut(playerUUID) { mutableMapOf() }
             val usage = playerUsage.getOrPut(quest.id) { UsageData() }
 
-            quest.cooldownSeconds?.let {
-                val diff = (now - usage.lastUsedTime) / 1000
-                if (diff < it) return false
+            val cooldown = quest.cooldownSeconds
+            val maxUses = quest.maxUseCount
+
+            if (cooldown != null && maxUses != null) {
+                val elapsed = (now - usage.lastRecoveryTime) / 1000
+                val recoveries = (elapsed / cooldown).toInt()
+
+                if (recoveries > 0) {
+                    usage.usedCount = (usage.usedCount - recoveries).coerceAtLeast(0)
+                    usage.lastRecoveryTime += recoveries * cooldown * 1000
+                }
+
+                if (usage.usedCount >= maxUses) return false
             }
 
-            quest.maxUseCount?.let {
-                if (usage.usedCount >= it) return false
-            }
             return true
         }
 
         fun recordQuestUse(playerUUID: UUID, quest: QuestData) {
             val playerUsage = usageMap.getOrPut(playerUUID) { mutableMapOf() }
             val usage = playerUsage.getOrPut(quest.id) { UsageData() }
+
             usage.lastUsedTime = System.currentTimeMillis()
             usage.usedCount++
         }
+
 
         fun getUsage(playerUUID: UUID, quest: QuestData): UsageData {
             val playerUsage = usageMap.getOrPut(playerUUID) { mutableMapOf() }
             return playerUsage.getOrPut(quest.id) { UsageData() }
         }
     }
+    // クエスト履歴を追加する関数
+    private fun addQuestHistory(uuid: UUID, data: PlayerQuestData, success: Boolean) {
+        val list = questHistories.getOrPut(uuid) { mutableListOf() }
+        list.add(
+            QuestHistoryEntry(
+                questId = data.quest.id,
+                questName = data.quest.name,
+                completedAt = System.currentTimeMillis(),
+                success = success,
+                progress = data.progress,
+                deathCount = data.deathCount
+            )
+        )
+    }
 
+    // 履歴の保存
+    fun saveQuestHistories() {
+        val mapToSave = questHistories.mapKeys { it.key.toString() }  // ここでUUIDを文字列に変換
+            .mapValues { entry ->
+                entry.value.map {
+                    mapOf(
+                        "questId" to it.questId,
+                        "questName" to it.questName,
+                        "completedAt" to it.completedAt,
+                        "success" to it.success,
+                        "progress" to it.progress,
+                        "deathCount" to it.deathCount
+                    )
+                }
+            }
+        historyConfig.set("histories", mapToSave)
+        historyConfig.save(historyFile)
+    }
+
+
+    // 履歴の読み込み
+    fun loadQuestHistories() {
+        if (!historyFile.exists()) return
+
+        val section = historyConfig.getConfigurationSection("histories") ?: return
+        for (uuidStr in section.getKeys(false)) {
+            val list = section.getMapList(uuidStr)
+            val historyList = mutableListOf<QuestHistoryEntry>()
+            for (map in list) {
+                val questId = map["questId"] as? String ?: continue
+                val questName = map["questName"] as? String ?: ""
+                val completedAt = (map["completedAt"] as? Number)?.toLong() ?: 0L
+                val success = map["success"] as? Boolean ?: false
+                val progress = (map["progress"] as? Number)?.toInt() ?: 0
+                val deathCount = (map["deathCount"] as? Number)?.toInt() ?: 0
+
+                historyList.add(QuestHistoryEntry(questId, questName, completedAt, success, progress, deathCount))
+            }
+            questHistories[UUID.fromString(uuidStr)] = historyList
+        }
+    }
     fun init() {
         // スポーン位置の定期更新（10秒ごと）
         Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
@@ -136,16 +218,23 @@ object ActiveQuestManager {
                 }
             }
         }, 20L * 10, 20L * 10) // 最初の遅延: 10秒、間隔: 10秒
+        loadQuestHistories()
     }
 
 
     fun shutdown() {
         activeQuests.values.forEach { data -> data.timer.stop() }
         activeQuests.clear()
+        saveQuestHistories()
     }
 
     fun startQuest(player: Player, quest: QuestData): Boolean {
         val uuid = player.uniqueId
+        // 同一クエストがすでに他のプレイヤーによって開始されていたら中断
+        if (activeQuests.values.any { it.quest.id == quest.id }) {
+            player.sendMessage("$prefix §c§lこのクエストは現在別のパーティーが進行中です。")
+            return false
+        }
         if (activeQuests.containsKey(uuid)) return false
 
         val partyMembers = if (quest.partyEnabled) {
@@ -168,24 +257,30 @@ object ActiveQuestManager {
             val nonEmpty = members.filter { it.inventory.contents.any { item -> item != null } }
             if (nonEmpty.isNotEmpty()) {
                 player.sendMessage("$prefix §c§l以下のプレイヤーのインベントリが空ではありません。クエストを開始できません。")
-                nonEmpty.forEach { player.sendMessage("§7 - §c${it.name}") }
+                nonEmpty.forEach { player.sendMessage("§7§l - §c§l${it.name}") }
                 return false
             }
 
             for (member in members) {
                 val memberUUID = member.uniqueId
                 val usage = PlayerQuestUsageManager.getUsage(memberUUID, quest)
+                if (quest.maxUseCount != null && quest.cooldownSeconds != null) {
+                    val remaining = quest.cooldownSeconds!! -
+                            ((System.currentTimeMillis() - usage.lastRecoveryTime) / 1000 % quest.cooldownSeconds!!)
+                    member.sendMessage("$prefix §c§lこのクエストは最大使用回数に達しています。あと §e§l${remaining}秒§c§lで1回分回復します。")
+                    return false
+                }
 
                 if (!PlayerQuestUsageManager.canUseQuest(memberUUID, quest)) {
                     if (quest.cooldownSeconds != null) {
                         val remaining = quest.cooldownSeconds!! - ((System.currentTimeMillis() - usage.lastUsedTime) / 1000)
                         if (remaining > 0) {
-                            member.sendMessage("$prefix §cこのクエストは現在クールダウン中です。あと §e$remaining 秒§cお待ちください。")
+                            member.sendMessage("$prefix §c§lこのクエストは現在クールダウン中です。あと §e§l$remaining 秒§c§lお待ちください。")
                             return false
                         }
                     }
                     if (quest.maxUseCount != null && usage.usedCount >= quest.maxUseCount!!) {
-                        member.sendMessage("$prefix §cこのクエストは最大使用回数に達しています。")
+                        member.sendMessage("$prefix §c§lこのクエストは最大使用回数に達しています。")
                         return false
                     }
                 }
@@ -274,15 +369,24 @@ object ActiveQuestManager {
             }
 
             if (quest.teleportWorld != null && quest.teleportX != null && quest.teleportY != null && quest.teleportZ != null) {
-                val world = Bukkit.getWorld(quest.teleportWorld!!)
+                val worldName = quest.teleportWorld!!
+                val world = Bukkit.getWorld(worldName)
+
                 if (world != null) {
                     val location = Location(world, quest.teleportX!!, quest.teleportY!!, quest.teleportZ!!)
                     member.teleport(location)
                     member.sendMessage("$prefix §a§lクエスト開始に伴い、指定された場所にテレポートしました！")
+                    Bukkit.getLogger().info("[QuestPlugin] ${member.name} を $worldName(${location.blockX}, ${location.blockY}, ${location.blockZ}) にテレポートしました。")
                 } else {
-                    member.sendMessage("$prefix §c§lテレポート先のワールドが存在しません。")
+                    member.sendMessage("$prefix §c§lテレポート先のワールドが存在しません（$worldName）")
+                    Bukkit.getLogger().warning("[QuestPlugin] テレポート失敗: ワールド '$worldName' が存在しません。")
+
+                    // 利用可能なワールド一覧を表示
+                    val availableWorlds = Bukkit.getWorlds().joinToString(", ") { it.name }
+                    Bukkit.getLogger().info("[QuestPlugin] 使用可能なワールド一覧: $availableWorlds")
                 }
             }
+
 
             updateBossBar(member)
         }
@@ -301,6 +405,18 @@ object ActiveQuestManager {
         Bukkit.getScheduler().runTask(plugin, Runnable {
             player.gameMode = GameMode.SURVIVAL
         })
+
+        addQuestHistory(uuid, data, false)
+        saveQuestHistories()  // ←追加
+
+        val partyMembers = PartyManager.getPartyMembers(player)
+
+        // パーティーメンバーのインベントリをクリアし、キルコマンドを実行
+        for (member in partyMembers) {
+            member.inventory.clear()
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "kill ${member.name}")
+        }
+
         if (PartyManager.disbandParty(player)) {
             player.sendMessage("$prefix §a§lクエストが終了とともにパーティーが解散されました")
         } else {
@@ -319,6 +435,8 @@ object ActiveQuestManager {
         player.sendMessage("$prefix §a§lクエスト[${data.quest.name}]をクリアしました！")
         data.questScoreboard.hide()
 
+        addQuestHistory(uuid, data, true)
+        saveQuestHistories()  // ←追加
 
         for (cmd in data.quest.rewards) {
             val command = cmd.replace("%player%", player.name)
